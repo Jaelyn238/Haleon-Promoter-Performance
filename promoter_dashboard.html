@@ -1,0 +1,3414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Promoter Performance Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;color:#1a1a1a;font-size:14px}
+.hdr{background:#1a1a1a;color:white;padding:.875rem 1.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.hdr h1{font-size:16px;font-weight:600}
+.ubtn{background:#0f6e56;color:white;border:none;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer}
+.ubtn:hover{background:#085041}
+.dz{border:2px dashed #d5d3cc;border-radius:12px;padding:1.5rem;text-align:center;margin:.75rem 1.25rem;background:white;display:none}
+.dz.vis{display:block}.dz.drag{border-color:#0f6e56;background:#f0faf6}
+.tabs{background:white;border-bottom:1px solid #e0ded8;display:flex;padding:0 1rem;overflow-x:auto}
+.tab{padding:10px 14px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;color:#888;white-space:nowrap}
+.tab.on{color:#1a1a1a;border-bottom-color:#1a1a1a;font-weight:600}
+.body{padding:1rem 1.25rem;max-width:1200px;margin:0 auto}
+.panel{display:none}.panel.on{display:block}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:1rem}
+@media(min-width:500px){.metrics{grid-template-columns:repeat(4,1fr)}}
+.met{background:white;border:.5px solid #e0ded8;border-radius:10px;padding:.75rem 1rem}
+.ml{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+.mv{font-size:22px;font-weight:700}.mv.g{color:#0f6e56}.mv.r{color:#e24b4a}.mv.o{color:#ba7517}
+.ms{font-size:11px;color:#aaa;margin-top:2px}
+.card{background:white;border:.5px solid #e0ded8;border-radius:12px;padding:1.125rem;margin-bottom:.875rem}
+.ct{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.875rem}
+.g-app{background:#085041;color:white}.g-ap{background:#0f6e56;color:white}
+.g-a{background:#eaf3de;color:#3b6d11}.g-b{background:#faeeda;color:#633806}.g-c{background:#fcebeb;color:#a32d2d}
+.gbadge{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px}
+.s-active{background:#eaf3de;color:#3b6d11}.s-kiv{background:#faeeda;color:#633806}
+.s-prob{background:#e6f1fb;color:#185fa5}.s-term{background:#f0eee8;color:#888}.s-soon{background:#fcebeb;color:#a32d2d}
+.sbadge{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:5px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:6px 8px;font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;border-bottom:1px solid #e8e6e0;white-space:nowrap}
+td{padding:7px 8px;border-bottom:.5px solid #f0eee8;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafaf8}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem}
+.fbtn{padding:5px 12px;font-size:12px;border:.5px solid #d5d3cc;border-radius:20px;background:white;color:#666;cursor:pointer}
+.fbtn.on{background:#1a1a1a;color:white;border-color:#1a1a1a}
+.rbar-bg{flex:1;height:8px;background:#f0eee8;border-radius:4px;overflow:hidden;min-width:60px}
+.rbar-fill{height:100%;border-radius:4px}
+.up{color:#0f6e56;font-weight:700}.dn{color:#e24b4a;font-weight:700}.fl{color:#aaa}
+.qgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.qbox{background:#f5f5f3;border-radius:8px;padding:8px 10px;text-align:center}
+.ql{font-size:10px;color:#aaa;margin-bottom:3px}.qv{font-size:16px;font-weight:700}
+/* awards */
+.award-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:1rem}
+.award-card{border-radius:12px;padding:1rem 1.125rem;color:white}
+.aw-icon{font-size:26px;margin-bottom:6px}
+.aw-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;opacity:.8}
+.aw-name{font-size:19px;font-weight:700;margin-bottom:2px}
+.aw-sub{font-size:12px;opacity:.75}
+.aw-reason{font-size:11px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.2);opacity:.85;line-height:1.5}
+/* store cards */
+.store-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin-bottom:1rem}
+.scard{background:#fafaf8;border-radius:9px;padding:10px 12px;cursor:pointer;transition:box-shadow .15s}
+.scard:hover{box-shadow:0 2px 10px rgba(0,0,0,.1)}
+.scard-name{font-size:13px;font-weight:700;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center}
+.scard-tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:4px;margin-top:6px}
+/* chart */
+.chart-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.chart-label{font-size:11px;min-width:180px;text-align:right;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chart-bar-wrap{flex:1}
+.chart-bar{height:22px;border-radius:4px;display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:600;color:white;min-width:4px;transition:width .3s}
+.chart-val{font-size:11px;min-width:55px;font-weight:600}
+/* alert */
+.alert-item{border-radius:10px;padding:.875rem 1rem;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px}
+/* Q&A */
+.qa-item{border:.5px solid #e0ded8;border-radius:10px;margin-bottom:8px;overflow:hidden}
+.qa-q{padding:12px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:white;font-weight:500;font-size:13px}
+.qa-q:hover{background:#fafaf8}
+.qa-a{padding:12px 14px;background:#f5f5f3;font-size:13px;color:#444;line-height:1.7;display:none;border-top:.5px solid #e0ded8}
+.qa-a.vis{display:block}
+.qa-arrow{font-size:11px;color:#aaa;transition:transform .2s}
+.qa-item.open .qa-arrow{transform:rotate(180deg)}
+/* modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:center;justify-content:center;padding:1rem}
+.modal-box{background:white;border-radius:14px;width:min(560px,96vw);max-height:82vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.modal-hdr{padding:1rem 1.25rem;border-bottom:1px solid #e0ded8;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:white;z-index:1}
+.modal-title{font-size:15px;font-weight:700}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:#aaa;padding:0 4px;line-height:1}
+.modal-body{padding:1.125rem}
+/* section divider */
+.sec-divider{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin:1.25rem 0 .75rem;padding-top:1rem;border-top:.5px solid #e8e6e0}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <h1>🌿 Haleon Caltrate — Promoter Performance</h1>
+    <p style="font-size:11px;color:#888;margin-top:2px">Aug 2025 – May 2026 · Incremental $/day</p>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span style="font-size:11px;color:#888" id="last-updated">Data: May 2026</span>
+    <button class="ubtn" onclick="toggleDrop()">📂 Update Excel</button>
+  </div>
+</div>
+
+<div class="dz" id="dz" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+  <h3>📊 Drop updated Excel to refresh data</h3>
+  <p>Drop <b>Promoter_Grading__Updated__.xlsx</b> here · or <label style="color:#0f6e56;cursor:pointer;text-decoration:underline">browse<input type="file" accept=".xlsx,.xls" style="display:none" onchange="handleFile(this.files[0])"></label></p>
+</div>
+
+
+
+<div class="tabs">
+  <div class="tab on" onclick="showTab('insights',this)">💡 Insights</div>
+  <div class="tab" onclick="showTab('stores',this)">🏪 Stores</div>
+  <div class="tab" onclick="showTab('overview',this)">📊 Overview</div>
+  <div class="tab" onclick="showTab('ranking',this)">🏅 Ranking</div>
+  <div class="tab" onclick="showTab('trend',this)">📈 Trend</div>
+  <div class="tab" onclick="showTab('individual',this)">👤 Individual</div>
+  <div class="tab" onclick="showTab('qa',this)">❓ Q&amp;A</div>
+  <div class="tab" onclick="showTab('advisor',this)">🔍 Store Advisor</div>
+</div>
+
+<div class="body">
+
+<!-- INSIGHTS -->
+<div class="panel on" id="tab-insights">
+  <div class="award-grid" id="awards-grid"></div>
+  <div class="card"><div class="ct">⚠️ Needs attention</div><div id="alerts-container"></div></div>
+  <div class="card">
+    <div class="ct">📋 Grade reanalysis — data-driven grades vs current</div>
+    <p style="font-size:11px;color:#888;margin-bottom:10px">🟢 Should upgrade &nbsp;|&nbsp; 🟠 Should downgrade &nbsp;|&nbsp; Based on actual avg incr/day</p>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>Name</th><th>Status</th><th>Current grade</th><th style="text-align:right">Avg $/day</th><th>Data says</th><th>Verdict</th></tr></thead>
+      <tbody id="regrade-tbody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- STORES -->
+<div class="panel" id="tab-stores">
+  <div class="metrics">
+    <div class="met"><div class="ml">Best single result</div><div class="mv g">$670/day</div><div class="ms">Joanne at JEM (GD)</div></div>
+    <div class="met"><div class="ml">Best store avg</div><div class="mv g">$476/day</div><div class="ms">Vivocity (UN)</div></div>
+    <div class="met"><div class="ml">Worst store</div><div class="mv r">$23/day</div><div class="ms">Paragon — all 3 lost money</div></div>
+    <div class="met"><div class="ml">Avoid</div><div class="mv o">NEX · PP · Paragon</div><div class="ms">Consistently low returns</div></div>
+  </div>
+
+  <div class="sec-divider">🟢 High-yield stores — click any card to see full history & who to send</div>
+  <div class="store-grid" id="good-stores"></div>
+
+  <div class="sec-divider">⚠️ Stores needing careful deployment — separated by chain. Click to see past records</div>
+  <div class="store-grid" id="bad-stores"></div>
+
+  <div class="card">
+    <div class="ct">📊 All stores ranked by avg incremental/day</div>
+    <div id="store-chart"></div>
+  </div>
+</div>
+
+<!-- OVERVIEW -->
+<div class="panel" id="tab-overview">
+  <div class="metrics">
+    <div class="met"><div class="ml">Active</div><div class="mv" id="ov-active">—</div><div class="ms">confirmed staff</div></div>
+    <div class="met"><div class="ml">May avg (active)</div><div class="mv g" id="ov-avg">—</div><div class="ms">incr/day</div></div>
+    <div class="met"><div class="ml">Top May</div><div class="mv" id="ov-top">—</div><div class="ms" id="ov-top-s">—</div></div>
+    <div class="met"><div class="ml">KIV / At risk</div><div class="mv o" id="ov-kiv">—</div><div class="ms" id="ov-kiv-n">—</div></div>
+  </div>
+  <div class="card">
+    <div class="ct">Grade distribution — active + probation by avg</div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+      <div style="text-align:center;background:#085041;border-radius:8px;padding:10px 6px"><div style="font-size:24px;font-weight:700;color:white" id="cnt-app">0</div><div style="font-size:10px;color:#9fe1cb;margin-top:2px">A++ ≥$200</div></div>
+      <div style="text-align:center;background:#e1f5ee;border-radius:8px;padding:10px 6px"><div style="font-size:24px;font-weight:700;color:#0f6e56" id="cnt-ap">0</div><div style="font-size:10px;color:#0f6e56;margin-top:2px">A+ $168–199</div></div>
+      <div style="text-align:center;background:#eaf3de;border-radius:8px;padding:10px 6px"><div style="font-size:24px;font-weight:700;color:#3b6d11" id="cnt-a">0</div><div style="font-size:10px;color:#3b6d11;margin-top:2px">A $125–167</div></div>
+      <div style="text-align:center;background:#faeeda;border-radius:8px;padding:10px 6px"><div style="font-size:24px;font-weight:700;color:#633806" id="cnt-b">0</div><div style="font-size:10px;color:#a06000;margin-top:2px">B $100–124</div></div>
+      <div style="text-align:center;background:#fcebeb;border-radius:8px;padding:10px 6px"><div style="font-size:24px;font-weight:700;color:#a32d2d" id="cnt-c">0</div><div style="font-size:10px;color:#a32d2d;margin-top:2px">C &lt;$100</div></div>
+    </div>
+  </div>
+  <div class="card"><div class="ct">All promoters</div>
+    <div style="overflow-x:auto"><table><thead><tr id="ov-thead"></tr></thead><tbody id="ov-tbody"></tbody></table></div>
+  </div>
+</div>
+
+<!-- RANKING -->
+<div class="panel" id="tab-ranking">
+  <div class="filters" id="rank-filters"></div>
+  <div class="card"><div class="ct" id="rank-title">Ranking</div>
+    <table><thead><tr><th style="width:28px">#</th><th>Name</th><th>Grade</th><th>Status</th><th style="text-align:right">$/day</th><th>Bar</th></tr></thead>
+    <tbody id="rank-tbody"></tbody></table>
+  </div>
+</div>
+
+<!-- TREND -->
+<div class="panel" id="tab-trend">
+  <div class="filters" id="trend-filters">
+    <button class="fbtn on" onclick="setTF(this,'all')">All</button>
+    <button class="fbtn" onclick="setTF(this,'Active')">Active</button>
+    <button class="fbtn" onclick="setTF(this,'KIV')">KIV</button>
+    <button class="fbtn" onclick="setTF(this,'Probation')">Probation</button>
+    <button class="fbtn" onclick="setTF(this,'Terminated')">Terminated</button>
+  </div>
+  <div class="card"><div class="ct">Monthly incremental/day — colour coded by grade threshold</div>
+    <div style="overflow-x:auto" id="trend-table"></div>
+  </div>
+</div>
+
+<!-- INDIVIDUAL -->
+<div class="panel" id="tab-individual">
+  <div style="margin-bottom:1rem">
+    <select id="p-sel" onchange="showInd()" style="width:100%;padding:9px 10px;border:1px solid #d5d3cc;border-radius:8px;font-size:14px;background:white">
+      <option value="">— Select a promoter —</option>
+    </select>
+  </div>
+  <div id="ind-content"></div>
+</div>
+
+<!-- Q&A -->
+<div class="panel" id="tab-qa">
+  <div class="card"><div class="ct">❓ Click any question to expand</div><div id="qa-list"></div></div>
+</div>
+
+<!-- STORE ADVISOR -->
+<div class="panel" id="tab-advisor">
+  <div class="card">
+    <div class="ct">🔍 Store Advisor — should we deploy here, and who?</div>
+    <p style="font-size:12px;color:#888;margin-bottom:12px">Search any store. Based on actual baseline + past promoter records, we'll recommend who to send — and who to avoid.</p>
+    <div style="position:relative;margin-bottom:1rem">
+      <input id="advisor-search" type="text" placeholder="Type store name e.g. Novena Square, JEM, Compass One…"
+        oninput="advisorSearch()"
+        style="width:100%;padding:10px 14px;border:1px solid #d5d3cc;border-radius:9px;font-size:14px;outline:none">
+      <div id="advisor-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #d5d3cc;border-top:none;border-radius:0 0 9px 9px;max-height:220px;overflow-y:auto;z-index:99"></div>
+    </div>
+    <div id="advisor-result"></div>
+  </div>
+
+  <div class="card">
+    <div class="ct">📋 All stores with BMD history — click to analyse</div>
+    <div id="advisor-all-stores" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px"></div>
+  </div>
+</div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <div class="modal-title" id="modal-title">Store Detail</div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const MONTHS=['Aug-25','Sep-25','Oct-25','Nov-25','Dec-25','Jan-26','Feb-26','Mar-26','Apr-26','May-26'];
+const MS=['Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May'];
+
+// ── PROMOTER DATA (from all actual monthly sheets) ──
+let PROMOTERS=[
+  {name:"Joanne",grade:"A++",status:"Active",salary:2180,joined:"Jul 2025",n:10,
+   monthly:{"Aug-25":92.1,"Sep-25":193.0,"Oct-25":141.9,"Nov-25":211.6,"Dec-25":311.9,"Jan-26":212.4,"Feb-26":130.0,"Mar-26":252.0,"Apr-26":208.0,"May-26":463.0},
+   avg:221.7,q1:221.8,q2:194.5,q3:335.5,
+   bestStores:[{s:"JEM (GD)",v:670},{s:"Bukit Panjang Plaza",v:228},{s:"Clementi Mall (WS)",v:308},{s:"PLQ (UN)",v:277}],
+   fit:"JEM GD is her power store — $670/day. Works across all chains. 7/10 months above $167.",alert:null},
+  {name:"Xirong",grade:"A++",status:"Active",salary:2080,joined:"Sep 2025",n:8,
+   monthly:{"Oct-25":162.8,"Nov-25":264.3,"Dec-25":96.0,"Jan-26":213.4,"Feb-26":407.0,"Mar-26":230.0,"Apr-26":144.0,"May-26":310.0},
+   avg:228.4,q1:174.4,q2:260.5,q3:227.0,
+   bestStores:[{s:"Vivocity (UN)",v:637},{s:"Compass One (WS)",v:342},{s:"Northpoint",v:539},{s:"Hougang One",v:468}],
+   fit:"High-footfall stores — Vivocity $637 is exceptional. $407 peak in Feb.",alert:null},
+  {name:"Karen",grade:"A+",status:"Active",salary:2352,joined:null,n:10,
+   monthly:{"Aug-25":276.2,"Sep-25":109.5,"Oct-25":202.6,"Nov-25":141.8,"Dec-25":77.9,"Jan-26":261.5,"Feb-26":28.0,"Mar-26":182.0,"Apr-26":191.0,"May-26":382.0},
+   avg:185.3,q1:140.7,q2:133.6,q3:286.5,
+   bestStores:[{s:"AMK Hub (FP)",v:586},{s:"Hougang One (UN)",v:360},{s:"North Point",v:474},{s:"Yew Tee Point",v:241}],
+   fit:"AMK Hub FP her best ($586). Hougang One $360. North Point $474. Heartland champion.",alert:null},
+  {name:"Nancy",grade:"A",status:"Active",salary:2208,joined:null,n:10,
+   monthly:{"Aug-25":71.6,"Sep-25":75.0,"Oct-25":130.5,"Nov-25":32.6,"Dec-25":34.8,"Jan-26":233.2,"Feb-26":96.0,"Mar-26":173.0,"Apr-26":256.0,"May-26":449.0},
+   avg:155.2,q1:66.0,q2:174.8,q3:352.5,
+   bestStores:[{s:"AMK Hub (FP/GD)",v:449},{s:"Jurong Point",v:717},{s:"Junction 8 (UN)",v:172}],
+   fit:"AMK Hub is her kingdom. Jurong Point surprisingly strong too ($717 — possibly total not per day, needs check).",alert:null},
+  {name:"Shirleen",grade:"A+",status:"Active",salary:2080,joined:"Dec 2025",n:6,
+   monthly:{"Dec-25":225.3,"Jan-26":305.7,"Feb-26":96.0,"Mar-26":164.0,"Apr-26":124.0,"May-26":193.0},
+   avg:184.7,q1:225.3,q2:128.0,q3:158.5,
+   bestStores:[{s:"Hougang One (UN)",v:592},{s:"JEM (WS)",v:260},{s:"Jurong Point (GD)",v:79}],
+   fit:"Hougang One is her superstore ($592!). JEM WS $260. Both high performers.",alert:null},
+  {name:"Helen",grade:"A",status:"Active",salary:2218,joined:"Jan 2025",n:10,
+   monthly:{"Aug-25":333.9,"Sep-25":80.7,"Oct-25":85.7,"Nov-25":189.6,"Dec-25":42.9,"Jan-26":110.8,"Feb-26":282.0,"Mar-26":92.0,"Apr-26":173.0,"May-26":96.0},
+   avg:148.7,q1:106.0,q2:182.3,q3:134.5,
+   bestStores:[{s:"Bugis (GD)",v:343},{s:"Clementi Mall (WS)",v:279},{s:"Clementi (FP)",v:197}],
+   fit:"West/Bugis cluster — Bugis GD $343 her best. Weak in May — store fit issue.",alert:"May $96 — dropped from $173 in Apr. Tampines and Heartbeat stores not working."},
+  {name:"Agnes",grade:"A",status:"Active",salary:2348,joined:null,n:10,
+   monthly:{"Aug-25":190.8,"Sep-25":121.4,"Oct-25":111.1,"Nov-25":54.7,"Dec-25":259.1,"Jan-26":102.4,"Feb-26":284.0,"Mar-26":60.0,"Apr-26":37.0,"May-26":164.0},
+   avg:138.5,q1:141.6,q2:127.0,q3:100.5,
+   bestStores:[{s:"Vivocity (UN)",v:314},{s:"IMM",v:246},{s:"Thomson Plaza",v:289}],
+   fit:"Surprisingly strong at Vivocity ($314) and Thomson Plaza. Paragon is wrong store for her.",alert:"Q3 avg $100 — declining. Paragon and IMM not working well. Need better store rotation."},
+  {name:"Jolin",grade:"A++",status:"Active",salary:2230,joined:"Mar 2026",n:3,
+   monthly:{"Mar-26":161.0,"Apr-26":378.0,"May-26":278.0},
+   avg:272.3,q1:null,q2:269.3,q3:328.0,
+   bestStores:[{s:"FP Bukit Merah",v:411},{s:"North Point",v:373},{s:"ION Orchard (GD)",v:278},{s:"Yew Tee Point",v:362}],
+   fit:"Premium + FP large format — thrives everywhere. FP Bukit Merah $411, North Point $373, ION $278.",alert:null},
+  {name:"Jojo",grade:"A+",status:"Active",salary:2230,joined:"Mar 2026",n:3,
+   monthly:{"Mar-26":193.0,"Apr-26":195.0,"May-26":90.0},
+   avg:159.3,q1:null,q2:194.0,q3:142.5,
+   bestStores:[{s:"Tiong Bahru (GD)",v:195},{s:"Bugis (WS)",v:202},{s:"Waterway Point",v:222}],
+   fit:"Tiong Bahru area — ultra-consistent $193-195 for 2 months. May $90 at WS (Vitastiq structure issue).",alert:"May dropped to $90 — Tiong Bahru WS Vitastiq w/o structure is a different setup. Revert to regular BMD store."},
+  {name:"Coreen",grade:"A++",status:"Active",salary:2080,joined:"Apr 2026",n:2,
+   monthly:{"Apr-26":141.0,"May-26":291.0},
+   avg:216.0,q1:null,q2:141.0,q3:216.0,
+   bestStores:[{s:"Hougang One (UN)",v:291},{s:"Bugis Junction (GD)",v:74}],
+   fit:"Hougang One is clearly her store — $291/day over 18 days in May. Strong trajectory.",alert:null},
+  {name:"Rowsyn",grade:"A+",status:"Active",salary:2180,joined:"Feb 2026",n:4,
+   monthly:{"Feb-26":141.0,"Mar-26":90.0,"Apr-26":167.0,"May-26":303.0},
+   avg:175.3,q1:null,q2:132.8,q3:235.0,
+   bestStores:[{s:"Parkway Parade",v:327},{s:"Junction 8 (GD)",v:198},{s:"Toa Payoh Hub",v:215}],
+   fit:"Parkway Parade is her surprise star ($327!). Also Junction 8 $198, Toa Payoh Hub $215.",alert:null},
+  {name:"Margaret",grade:"A+",status:"Active",salary:2230,joined:"Feb 2026",n:4,
+   monthly:{"Feb-26":107.0,"Mar-26":158.0,"Apr-26":106.0,"May-26":300.0},
+   avg:167.8,q1:null,q2:123.7,q3:203.0,
+   bestStores:[{s:"East Point (FP)",v:340},{s:"Tampines Mall (GD)",v:147}],
+   fit:"East region — East Point FP $340 is her home. May $300 confirms the East cluster suits her.",alert:null},
+  {name:"Lynn Li",grade:"A",status:"Active",salary:2180,joined:"Mar 2026",n:3,
+   monthly:{"Mar-26":106.0,"Apr-26":125.0,"May-26":189.0},
+   avg:140.0,q1:null,q2:115.3,q3:157.0,
+   bestStores:[{s:"Thomson Plaza (UN)",v:189}],
+   fit:"Only Thomson Plaza so far — $189/day in May is a strong signal. Needs more store exposure.",alert:null},
+  {name:"Sharon",grade:"A++",status:"Probation",salary:2180,joined:"May 2026",n:1,
+   monthly:{"May-26":216.0},
+   avg:216.0,q1:null,q2:null,q3:216.0,
+   bestStores:[{s:"East Point (FP)",v:314}],
+   fit:"East Point FP $314 — excellent debut. East region, same cluster as Margaret.",alert:null},
+  {name:"Esther",grade:"B",status:"Probation",salary:2180,joined:"Apr 2026",n:1,
+   monthly:{"May-26":90.0},
+   avg:90.0,q1:null,q2:null,q3:90.0,
+   bestStores:[{s:"Junction 8",v:136},{s:"Hyper JEM (FP)",v:119}],
+   fit:"Still early. Junction 8 and Hyper JEM both decent. Clementi Mall too low ($40).",alert:"May avg $90 — below $100 threshold. Watch June carefully."},
+  {name:"Maco",grade:"C",status:"KIV",salary:2180,joined:"Aug 2025",n:9,
+   monthly:{"Sep-25":95.8,"Oct-25":65.9,"Nov-25":7.0,"Dec-25":25.4,"Jan-26":172.6,"Feb-26":46.0,"Mar-26":167.0,"Apr-26":71.0,"May-26":175.0},
+   avg:91.9,q1:32.7,q2:94.7,q3:123.0,
+   bestStores:[{s:"Bedok Mall (GD)",v:136},{s:"Bedok North St",v:78}],
+   fit:"Bedok cluster suits him — $175 in May is improving. But 9-month avg $92 still below threshold.",alert:"KIV — overall avg $92. May $175 is best month ever — Bedok Mall working. Watch June."},
+  {name:"Wei Wei",grade:"C",status:"KIV",salary:2210,joined:null,n:10,
+   monthly:{"Aug-25":60.7,"Sep-25":-0.1,"Oct-25":5.2,"Nov-25":46.6,"Dec-25":37.9,"Jan-26":78.0,"Feb-26":47.0,"Mar-26":284.0,"Apr-26":-4.0,"May-26":65.0},
+   avg:62.0,q1:29.9,q2:109.0,q3:30.5,
+   bestStores:[{s:"Toa Payoh (UN)",v:548}],
+   fit:"Toa Payoh only — $548 is a one-off spike. Everywhere else below $100. Inconsistent.",alert:"KIV — avg $62 over 10 months. Q3 avg $30 — trending down. Replace."},
+  {name:"Carol",grade:"C",status:"KIV",salary:2080,joined:"Sep 2025",n:8,
+   monthly:{"Oct-25":67.1,"Nov-25":51.5,"Dec-25":30.0,"Jan-26":200.2,"Feb-26":51.0,"Mar-26":122.0,"Apr-26":39.0,"May-26":166.0},
+   avg:90.9,q1:49.5,q2:70.5,q3:102.5,
+   bestStores:[{s:"FP Bukit Merah",v:166},{s:"JEM",v:195},{s:"Junction 8",v:569}],
+   fit:"Junction 8 surprisingly $569 (one reading) — may be an anomaly. Erratic overall.",alert:"KIV — avg $91. Wild swings (Jan $200 then Feb $51). May $166 improving but pattern unreliable."},
+  {name:"Angie",grade:"C",status:"Terminating soon",salary:2080,joined:"Dec 2025",n:6,
+   monthly:{"Dec-25":64.5,"Jan-26":24.7,"Feb-26":122.0,"Mar-26":95.0,"Apr-26":149.0,"May-26":23.0},
+   avg:79.7,q1:64.5,q2:122.1,q3:86.0,
+   bestStores:[{s:"Hougang One (UN)",v:224},{s:"Compass One (GD)",v:149}],
+   fit:"Terminating. May $23 confirms right call.",alert:"Terminating — May $23/day. Correct decision."},
+  {name:"Wai Lin",grade:"C",status:"Terminated",salary:2080,joined:"Jan 2025",n:8,
+   monthly:{"Aug-25":52.5,"Sep-25":35.8,"Oct-25":11.5,"Nov-25":22.6,"Dec-25":8.3,"Jan-26":66.0,"Feb-26":137.0,"Mar-26":98.0},
+   avg:54.0,q1:null,q2:2.0,q3:5.0,bestStores:[],fit:"Terminated",alert:null},
+  {name:"Emerson",grade:"C",status:"Terminated",salary:2180,joined:"Jan 2025",n:8,
+   monthly:{"Aug-25":-130.3,"Sep-25":32.7,"Oct-25":66.1,"Nov-25":129.3,"Dec-25":195.7,"Jan-26":159.3,"Feb-26":-35.0,"Mar-26":56.0},
+   avg:59.1,q1:null,q2:4.0,q3:4.0,bestStores:[],fit:"Terminated",alert:null},
+  {name:"Tze-Wei",grade:"A",status:"Terminated",salary:2080,joined:"Dec 2025",n:4,
+   monthly:{"Dec-25":297.1,"Jan-26":56.7,"Feb-26":66.0,"Mar-26":54.0},
+   avg:118.5,q1:null,q2:null,q3:null,bestStores:[],fit:"Terminated",alert:null},
+  {name:"Josephine",grade:"C",status:"Terminated",salary:2130,joined:"Jan 2026",n:3,
+   monthly:{"Jan-26":2.5,"Feb-26":-35.0,"Mar-26":80.0},
+   avg:15.8,q1:null,q2:1.0,q3:1.0,bestStores:[],fit:"Terminated",alert:null},
+  {name:"Wilson",grade:"C",status:"Terminated",salary:2180,joined:"Apr 2026",n:2,
+   monthly:{"Apr-26":56.0,"May-26":75.0},
+   avg:65.5,q1:null,q2:55.7,q3:65.5,bestStores:[],fit:"Terminated",alert:null},
+  {name:"Michelle",grade:"C",status:"Terminated",salary:2180,joined:"May 2026",n:1,
+   monthly:{"May-26":-3.0},
+   avg:-3.0,q1:null,q2:null,q3:-3.0,bestStores:[],fit:"Terminated",alert:null},
+];
+
+// ── STORE DATA (all accurate from actual sheets) ──
+const STORES_RANKED=[
+  // ── IN-STORE BMD ──
+  {store:"JEM — Guardian (In-store BMD)",type:"BMD",avg:404,ch:"Guardian",days:55,n:9,good:true,
+   visits:[{p:"Joanne",d:20,v:670,note:"Apr+May — her power store 🔥"},{p:"Emerson",d:2,v:370,note:"Apr — his best"},{p:"Xirong",d:2,v:300,note:"Apr — short but great"},{p:"Shirleen",d:5,v:260,note:"May — solid"},{p:"Coreen",d:2,v:210,note:"Apr — good"},{p:"Carol",d:1,v:195,note:"Mar — above target"},{p:"Wai Lin",d:1,v:157,note:"Apr — decent"},{p:"Tze-Wei",d:10,v:125,note:"Mar — below"},{p:"Lynn",d:15,v:125,note:"Apr — below"}],
+   insight:"JEM GD is the top In-store BMD store. Joanne $670 is the single best result in the program. Most promoters do well here — even Wai Lin managed $157. Baseline $82 is manageable.",tag:"✅ Best BMD store — prioritise strong promoters"},
+  {store:"Hougang One — Unity (In-store BMD)",type:"BMD",avg:347,ch:"Unity",days:41,n:6,good:true,
+   visits:[{p:"Shirleen",d:2,v:592,note:"May — exceptional 🔥"},{p:"Xirong",d:5,v:468,note:"Feb — very strong"},{p:"Karen",d:4,v:360,note:"May — strong"},{p:"Coreen",d:18,v:291,note:"May — solid 18 days"},{p:"Angie",d:7,v:224,note:"Various — her best"},{p:"Agnes",d:4,v:148,note:"Feb — decent"},{p:"Wai Lin",d:5,v:97,note:"Feb — below"}],
+   insight:"Hougang One is a hidden gem — Shirleen $592, Xirong $468, Karen $360, Coreen $291. 6 different promoters, most performed well. Low baseline $83. Should be scheduled much more frequently.",tag:"✅ Underutilised — many promoters excel here"},
+  {store:"Vivocity — Unity (In-store BMD)",type:"BMD",avg:476,ch:"Unity",days:19,n:2,good:true,
+   visits:[{p:"Xirong",d:12,v:637,note:"Feb+Mar — dominant"},{p:"Agnes",d:7,v:314,note:"Feb+Mar — strong here"}],
+   insight:"Vivocity BMD avg $476 — Xirong $637 and Agnes $314. Very high baseline $209 but both delivered. Only tested with 2 promoters. Note: Agnes later placed at 'Vivocity (Saturation)' label got $42 — different placement matters.",tag:"✅ Xirong/Agnes proven — only A+ here"},
+  {store:"North Point (In-store BMD)",type:"BMD",avg:407,ch:"Watsons/Guardian",days:26,n:4,good:true,
+   visits:[{p:"Xirong",d:1,v:577,note:"Jun — exceptional"},{p:"Karen",d:1,v:474,note:"Apr — strong"},{p:"Jolin",d:17,v:373,note:"Apr — consistent 17 days"},{p:"Esther",d:7,v:204,note:"Jun — good for new promoter"}],
+   insight:"North Point is a top-tier store — Xirong $577, Karen $474, Jolin $373 over 17 days, Esther $204. Accessible baseline $84-125. Underutilised — worth scheduling more.",tag:"✅ Consistently excellent across promoters"},
+  {store:"AMK Hub — GD/FP (In-store BMD)",type:"BMD",avg:356,ch:"Guardian/FairPrice",days:72,n:6,good:true,
+   visits:[{p:"Karen",d:5,v:586,note:"May GD — highest single result!"},{p:"Nancy",d:57,v:356,note:"Apr-Jun — her home store"},{p:"Xirong",d:2,v:307,note:"Apr — great even briefly"},{p:"Wei Wei",d:2,v:34,note:"Feb — very low"},{p:"Emerson",d:2,v:-30,note:"Apr — negative"},{p:"Josephine",d:20,v:-35,note:"Feb — negative, terminated"}],
+   insight:"High baseline ($180-276) but Karen $586 and Nancy $356 prove it works. Only send A+/A++ here — weaker promoters go negative. Nancy owns this store.",tag:"✅ Nancy's home — also Karen. A++ only"},
+  {store:"Parkway Parade — Guardian/FP (In-store BMD)",type:"BMD",avg:418,ch:"Guardian/FairPrice",days:24,n:4,good:true,
+   visits:[{p:"Joanne",d:15,v:557,note:"Jun 🔥 — new best for Parkway!"},{p:"Jolin",d:5,v:485,note:"Jun — outstanding"},{p:"Rowsyn",d:9,v:327,note:"May — proved it works"},{p:"Helen",d:1,v:118,note:"May — 1 day ok"},{p:"Angie",d:8,v:49,note:"May+Jun — low"},{p:"Sharon",d:4,v:-30,note:"May — negative"},{p:"Lynn Lau",d:1,v:-58,note:"May — negative"}],
+   insight:"Parkway Parade GD/FP is a GREAT store for strong promoters! Joanne $557 (Jun), Jolin $485 (Jun), Rowsyn $327 (May) — top results. Low GD baseline $66 makes it very achievable. Wrong conclusion to label this a tough store.",tag:"✅ Top store — Joanne/Jolin/Rowsyn proven"},
+  {store:"Clementi Mall — Watsons (In-store BMD)",type:"BMD",avg:247,ch:"Watsons",days:63,n:7,good:true,
+   visits:[{p:"Joanne",d:10,v:308,note:"Mar+Apr — strong"},{p:"Coreen",d:11,v:305,note:"Jun — great debut"},{p:"Helen",d:19,v:279,note:"Feb — consistent"},{p:"Emerson",d:1,v:221,note:"Mar — 1 day"},{p:"Karen",d:14,v:170,note:"Mar+Apr — solid"},{p:"Wei Wei",d:6,v:113,note:"Feb — below"},{p:"Esther",d:8,v:40,note:"May — low"}],
+   insight:"Clementi Mall WS is a reliable store — 5 promoters above $100. Joanne $308, Coreen $305, Helen $279. Accessible baseline $116. Good rotation store for most A/A+ promoters.",tag:"✅ Reliable — works for most A/A+ promoters"},
+  {store:"East Point — FairPrice (In-store BMD)",type:"BMD",avg:365,ch:"FairPrice",days:36,n:4,good:true,
+   visits:[{p:"Xirong",d:1,v:461,note:"Jun — exceptional"},{p:"Margaret",d:24,v:342,note:"Apr-Jun — her anchor"},{p:"Sharon",d:10,v:314,note:"May — excellent debut"},{p:"Esther",d:1,v:44,note:"Jun — 1 day low"}],
+   insight:"East Point FP is the East region anchor — Margaret $342, Sharon $314, Xirong $461. Low baseline $70 makes it very achievable. Keep Margaret and Sharon here.",tag:"✅ East region best — Margaret/Sharon anchor"},
+  {store:"Yew Tee Point — Unity (In-store BMD)",type:"BMD",avg:263,ch:"Unity",days:29,n:3,good:true,
+   visits:[{p:"Jolin",d:1,v:362,note:"Apr — strong even 1 day"},{p:"Karen",d:28,v:218,note:"Mar+Apr+Jun — consistent 28 days"},{p:"Rowsyn",d:6,v:-4,note:"Jun — negative!"}],
+   insight:"Karen's heartland store — $218 over 28 days is very reliable. Jolin $362 in 1 day. But Rowsyn went negative here in Jun — not every promoter suits this store.",tag:"✅ Karen's store — consistent, but promoter-specific"},
+  {store:"NEX — Watsons (In-store BMD)",type:"BMD",avg:190,ch:"Watsons",days:11,n:3,good:true,
+   visits:[{p:"Coreen",d:2,v:410,note:"Jun — outstanding!"},{p:"Joanne",d:2,v:292,note:"Apr — strong"},{p:"Xirong",d:1,v:159,note:"Apr — decent"},{p:"Wai Lin",d:8,v:120,note:"Mar — ok for her level"}],
+   insight:"NEX WS baseline $108-163 is manageable for strong promoters. Coreen $410 in Jun! Joanne $292, Xirong $159. Wai Lin $120 even worked. Worth regular scheduling with A+/A++ promoters.",tag:"✅ WS NEX works — Coreen/Joanne/Xirong proven"},
+  {store:"Fairprice Bukit Merah Central (In-store BMD)",type:"BMD",avg:206,ch:"FairPrice",days:41,n:4,good:true,
+   visits:[{p:"Jolin",d:3,v:411,note:"Apr — outstanding 🔥"},{p:"Carol",d:20,v:166,note:"May — above target, notable"},{p:"Wai Lin",d:15,v:150,note:"Feb — decent"},{p:"Agnes",d:3,v:98,note:"Feb — below"}],
+   insight:"Jolin $411 over 3 days is the best result here. Carol $166 and Wai Lin $150 both above $100 — even less strong promoters can work at this store. Low baseline $182 for FP. Worth sending more A+ promoters.",tag:"✅ Jolin's best FP — many promoters work"},
+  {store:"Bukit Panjang Plaza (In-store BMD)",type:"BMD",avg:228,ch:"Unity",days:21,n:1,good:true,
+   visits:[{p:"Joanne",d:21,v:228,note:"Mar — full month, consistent"}],
+   insight:"Joanne alone here — $228/day over a full month. Only 1 promoter tested. Underutilised — send other A+ promoters to validate.",tag:"✅ Joanne proven — test others"},
+  // ── ATRIUM ──
+  {store:"Jurong Point — Atrium",type:"Atrium",avg:577,ch:"Unity",days:7,n:1,good:true,
+   visits:[{p:"Jolin",d:7,v:577,note:"Jun — 5% comm ≈$232"}],
+   insight:"Jolin at Jurong Point Atrium — $577 incr/day over 7 days, estimated 5% commission $232. Atrium format gives very high daily scans. Match the right high-energy promoter.",tag:"✅ Atrium — Jolin's best format"},
+  {store:"Compass One — Atrium",type:"Atrium",avg:816,ch:"Watsons",days:1,n:2,good:true,
+   visits:[{p:"Agnes",d:1,v:816,note:"Jun — 5% est $46"},{p:"Maco",d:1,v:816,note:"Jun — 5% est $46"}],
+   insight:"Both Agnes and Maco got $816 in 1 day at Compass One Atrium — very high for both of them vs their usual In-store performance. Atrium format clearly amplifies results.",tag:"✅ Atrium boosts — even lower performers shine"},
+  {store:"Waterway Point — Atrium",type:"Atrium",avg:334,ch:"Watsons",days:6,n:1,good:true,
+   visits:[{p:"Helen",d:6,v:334,note:"Jun — 5% comm ≈$128. Better than last year $335"}],
+   insight:"Helen $334/day Atrium vs her In-store avg of $148. Atrium format significantly boosts her results. Note your sheet says 'compare to last year $335 — seems improvement'.",tag:"✅ Helen's Atrium store — consistent"},
+  {store:"West Mall — Atrium",type:"Atrium",avg:419,ch:"Watsons",days:5,n:2,good:true,
+   visits:[{p:"Agnes",d:2,v:448,note:"Jun — 5% est $49"},{p:"Esther",d:3,v:391,note:"Jun — 5% est $64"}],
+   insight:"Agnes $448 and Esther $391 at West Mall Atrium — dramatically better than their In-store averages. Atrium format suits promoters who engage well face-to-face.",tag:"✅ Good Atrium location — Agnes/Esther"},
+  {store:"Sunplaza — Atrium",type:"Atrium",avg:311,ch:"Watsons",days:6,n:1,good:true,
+   visits:[{p:"Helen",d:6,v:311,note:"Jun — 5% est $105. Better than last year $159"}],
+   insight:"Helen $311/day Atrium. Sheet note: 'compare to last year $159 — improvement'. Sunplaza Atrium is working well for Helen in Jun.",tag:"✅ Helen consistent at Sunplaza Atrium"},
+]
+
+const STORES_BAD=[
+  {store:"NEX — Guardian (bl $263)",avg:null,ch:"Guardian",days:21,n:5,good:false,
+   visits:[
+     {p:"Joanne",d:null,v:582,note:"Sep-25 🔥 LAST YEAR — outstanding"},
+     {p:"Karen",d:null,v:372,note:"Aug-25 🔥 LAST YEAR — strong"},
+     {p:"Maco",d:null,v:275,note:"Sep-25 — decent last year"},
+     {p:"Nancy",d:6,v:45,note:"Feb-26 — dropped off"},
+     {p:"Agnes",d:6,v:-67,note:"Mar-26 — negative"},
+     {p:"Wai Lin",d:null,v:64,note:"Aug-25 — below"},
+     {p:"Emerson",d:5,v:-72,note:"Feb-26 — negative"},
+   ],
+   insight:"Guardian NEX was STRONG last year — Joanne $582, Karen $372, Maco $275 in Aug/Sep 2025. Results dropped in 2026 (baseline went from $263 to $267 but also promoter mix changed). The store is not the problem — wrong promoters sent in 2026. Send Joanne or Xirong back to GD NEX.",tag:"⚠️ Was great last year — send Joanne/Karen back"},
+  {store:"NEX — Watsons (bl $108)",avg:190,ch:"Watsons",days:11,n:3,good:false,
+   visits:[
+     {p:"Joanne",d:2,v:292,note:"Apr-26 — strong even on 2 days"},
+     {p:"Xirong",d:1,v:159,note:"Apr-26 — decent 1 day"},
+     {p:"Wai Lin",d:8,v:120,note:"Mar-26 — ok for her level"},
+   ],
+   insight:"Watsons NEX baseline $108 — much more manageable than Guardian. Joanne $292 and Xirong $159 both delivered well. Wai Lin $120 (terminated) also not bad. WS NEX is a viable store — schedule Joanne or Xirong regularly here.",tag:"✅ WS NEX works — Joanne/Xirong proven"},
+  {store:"Parkway Parade — Guardian (bl $66)",avg:220,ch:"Guardian",days:null,n:7,good:false,
+   visits:[
+     {p:"Rowsyn",d:9,v:327,note:"May-26 🔥 — outstanding"},
+     {p:"Karen",d:null,v:342,note:"Nov-25 🔥 — strong last year"},
+     {p:"Carol",d:null,v:217,note:"Oct-25 — above target"},
+     {p:"Agnes",d:null,v:202,note:"Aug-25 — above target"},
+     {p:"Wai Lin",d:null,v:161,note:"Aug-25 — above target"},
+     {p:"Agnes",d:null,v:75,note:"Nov-25 — below"},
+     {p:"Emerson",d:2,v:-21,note:"Apr-26 — negative"},
+   ],
+   insight:"Guardian Parkway baseline $66 — many promoters do well here! Rowsyn $327, Karen $342, Carol $217, Agnes $202, Wai Lin $161 all above target. This is NOT a tough store for Guardian — it has the right customer profile. Schedule strong promoters consistently here.",tag:"✅ GD Parkway — many promoters work!"},
+  {store:"Parkway Parade — Watsons (bl $103)",avg:18,ch:"Watsons",days:18,n:5,good:false,
+   visits:[
+     {p:"Karen",d:null,v:48,note:"Aug-25 — below"},
+     {p:"Helen",d:1,v:118,note:"May-26 — 1 day promising"},
+     {p:"Emerson",d:13,v:43,note:"Mar-26 — below"},
+     {p:"Sharon",d:4,v:-30,note:"May-26 — negative"},
+     {p:"Angie",d:3,v:20,note:"May-26 — low"},
+     {p:"Lynn Lau",d:1,v:-58,note:"May-26 — negative"},
+   ],
+   insight:"Watsons Parkway baseline $103 — consistently underperforms. Karen only $48, Emerson $43, Sharon negative. Helen $118 in 1 day is the only bright spot. The WS format at Parkway doesn't work — avoid.",tag:"🔴 WS Parkway — avoid"},
+  {store:"Parkway Parade — FairPrice (bl $126)",avg:88,ch:"FairPrice",days:null,n:4,good:false,
+   visits:[
+     {p:"Agnes",d:null,v:202,note:"Aug-25 — strong!"},
+     {p:"Wei Wei",d:null,v:118,note:"Sep-25 — decent"},
+     {p:"Nancy",d:null,v:10,note:"Aug-25 — very low"},
+     {p:"Emerson",d:null,v:-58,note:"Sep-25 — negative"},
+   ],
+   insight:"FairPrice Parkway baseline $126 — Agnes $202 and Wei Wei $118 (last year) are encouraging. But Nancy $10 and Emerson negative same period. Store may work for the right promoter. Test Rowsyn or Jolin here — both strong in FP stores.",tag:"⚠️ FP Parkway — some potential, test Rowsyn/Jolin"},
+  {store:"Great World — Guardian (bl $56)",avg:124,ch:"Guardian",days:10,n:2,good:false,
+   visits:[
+     {p:"Xirong",d:1,v:1095,note:"May-26 — Atrium event, not regular BMD"},
+     {p:"Carol",d:9,v:124,note:"Mar-26 — above $100 over 9 days"},
+     {p:"Wilson",d:14,v:51,note:"Apr-May 26 — below"},
+     {p:"Michelle",d:4,v:28,note:"May-26 — low"},
+     {p:"Maco",d:2,v:-25,note:"May-26 — negative"},
+   ],
+   insight:"Guardian Great World baseline $56 is low and manageable. Carol $124 over 9 days proves the store can work. Xirong 1-day $1,095 is an Atrium/event activation — not comparable to regular BMD. Wilson, Michelle, Maco all underperformed. Worth sending A+ promoters like Joanne, Rowsyn, or Jolin to properly test.",tag:"⚠️ GD Great World — Carol proved it works, test A+ next"},
+  {store:"Great World — Watsons (bl $90)",avg:32,ch:"Watsons",days:14,n:2,good:false,
+   visits:[
+     {p:"Wilson",d:8,v:63,note:"Apr-26 — below"},
+     {p:"Wai Lin",d:6,v:1,note:"Apr-26 — near zero"},
+   ],
+   insight:"Watsons Great World baseline $90 — Wilson $63, Wai Lin near zero. Only weak promoters tested here. The higher WS baseline makes it harder than GD. Avoid WS format at Great World.",tag:"🔴 WS Great World — avoid"},
+]
+
+// ── HELPERS ──
+function gc(v){if(v==null)return'#ccc';if(v>=200)return'#085041';if(v>=168)return'#0f6e56';if(v>=125)return'#3b6d11';if(v>=100)return'#ba7517';if(v>=0)return'#e24b4a';return'#f5b0b0';}
+function gv(v){if(v==null)return'—';if(v>=200)return'A++';if(v>=168)return'A+';if(v>=125)return'A';if(v>=100)return'B';return'C';}
+function gcls(g){if(g==='A++')return'g-app';if(g==='A+')return'g-ap';if(g==='A')return'g-a';if(g==='B')return'g-b';return'g-c';}
+function scls(s){if(!s)return's-term';const sl=s.toLowerCase();if(sl.includes('active'))return's-active';if(sl.includes('kiv'))return's-kiv';if(sl.includes('probation'))return's-prob';if(sl.includes('terminat'))return sl.includes('soon')?'s-soon':'s-term';return's-term';}
+function fmt(v){return v==null?'—':(v<0?'-$'+Math.abs(v).toFixed(0):'$'+v.toFixed(0));}
+function ch(v){if(v==null)return'<td style="color:#e0ded8;text-align:right">—</td>';return`<td style="text-align:right;font-weight:500;color:${gc(v)}">${fmt(v)}</td>`;}
+function isLeaving(p){return p.status.toLowerCase().includes('terminat');}
+function trendArrow(p){const vals=MONTHS.map(m=>p.monthly[m]).filter(v=>v!=null);if(vals.length<2)return'<span class="fl">—</span>';const d=vals[vals.length-1]-vals[vals.length-2];if(d>10)return`<span class="up">↑ +$${d.toFixed(0)}</span>`;if(d<-10)return`<span class="dn">↓ -$${Math.abs(d).toFixed(0)}</span>`;return'<span class="fl">→</span>';}
+
+// ── INSIGHTS ──
+function buildInsights(){
+  const active=PROMOTERS.filter(p=>!isLeaving(p));
+  const vets=active.filter(p=>p.n>=6);
+
+  // Best performer
+  const best=vets.sort((a,b)=>b.avg-a.avg)[0];
+  // Most consistent: months above $167 / total months
+  const consistScore=vets.map(p=>{const vals=Object.values(p.monthly).filter(v=>v!=null);const above=vals.filter(v=>v>=167).length;return{p,above,total:vals.length,rate:above/vals.length};}).sort((a,b)=>b.rate-a.rate);
+  const consist=consistScore[0];
+  // Best newcomer: joined 2026, 2+ months
+  const newbies=active.filter(p=>p.joined&&String(p.joined).includes('2026')&&p.n>=2).sort((a,b)=>b.avg-a.avg);
+  const newcomer=newbies[0];const honor=newbies[1]&&newbies[1].avg>=200?newbies[1]:null;
+  // Most improved q2->q3
+  const improved=active.filter(p=>p.q2!=null&&p.q3!=null).sort((a,b)=>(b.q3-b.q2)-(a.q3-a.q2))[0];
+  // May surge
+  const surge=active.filter(p=>p.monthly['May-26']!=null&&p.monthly['Apr-26']!=null).sort((a,b)=>(b.monthly['May-26']-b.monthly['Apr-26'])-(a.monthly['May-26']-a.monthly['Apr-26']))[0];
+
+  const awards=[
+    {icon:'🏆',title:'Best Performer',bg:'linear-gradient(135deg,#1a1a1a,#333)',
+     name:best?.name,sub:`$${best?.avg?.toFixed(0)}/day avg · ${best?.n} months`,
+     reason:`Highest sustained average among veterans (6+ months). Peak: $670/day at JEM.`},
+    {icon:'💎',title:'Most Consistent',bg:'linear-gradient(135deg,#6c3483,#9b59b6)',
+     name:consist?.p?.name,sub:`${consist?.above}/${consist?.total} months above $167`,
+     reason:`Hits the $167 target in ${consist?.above} of ${consist?.total} months — highest reliability on the team.`},
+    {icon:'🌟',title:'Best Newcomer'+(honor?' + Honourable':''),bg:'linear-gradient(135deg,#185fa5,#2e86de)',
+     name:newcomer?.name,sub:`$${newcomer?.avg?.toFixed(0)}/day avg · joined ${String(newcomer?.joined||'').slice(0,10)}`,
+     reason:`Outstanding debut.${ honor?` Honourable mention: ${honor.name} at $${honor.avg.toFixed(0)}/day.`:''}`},
+    {icon:'📈',title:'Most Improved',bg:'linear-gradient(135deg,#ba7517,#e89020)',
+     name:improved?.name,sub:`Q2 $${improved?.q2?.toFixed(0)} → Q3 $${improved?.q3?.toFixed(0)}`,
+     reason:`+$${improved?(improved.q3-improved.q2).toFixed(0):0}/day Q2→Q3. Biggest quarter improvement.`},
+    {icon:'🚀',title:'May Surge',bg:'linear-gradient(135deg,#0f6e56,#16a085)',
+     name:surge?.name,sub:`+$${surge?(surge.monthly['May-26']-surge.monthly['Apr-26']).toFixed(0):0} vs Apr`,
+     reason:`Biggest May jump vs April. On fire — keep the momentum.`},
+  ];
+
+  document.getElementById('awards-grid').innerHTML=awards.map(a=>`
+    <div class="award-card" style="background:${a.bg}">
+      <div class="aw-icon">${a.icon}</div>
+      <div class="aw-title">${a.title}</div>
+      <div class="aw-name">${a.name||'—'}</div>
+      <div class="aw-sub">${a.sub||''}</div>
+      <div class="aw-reason">${a.reason||''}</div>
+    </div>`).join('');
+
+  // Alerts
+  const alerted=PROMOTERS.filter(p=>p.alert&&!isLeaving(p));
+  const kivExtra=PROMOTERS.filter(p=>p.status==='KIV'&&!alerted.find(a=>a.name===p.name));
+  const allAlerts=[...alerted,...kivExtra];
+  document.getElementById('alerts-container').innerHTML=allAlerts.map(p=>{
+    const red=p.avg<50||(p.monthly['May-26']!=null&&p.monthly['May-26']<0);
+    const bg=red?'#fcebeb':'#fff4e5';const border=red?'#a32d2d':'#e89020';const icon=red?'🚨':'⚠️';
+    const msg=p.alert||(p.status==='KIV'?`KIV — avg ${fmt(p.avg)}/day. Review replacement plan.`:'');
+    return`<div class="alert-item" style="background:${bg};border-left:3px solid ${border}">
+      <div style="font-size:18px;flex-shrink:0">${icon}</div>
+      <div><div style="font-size:13px;font-weight:600;margin-bottom:2px">${p.name} <span class="sbadge ${scls(p.status)}">${p.status}</span></div>
+      <div style="font-size:12px;opacity:.9;line-height:1.5">${msg}</div></div>
+    </div>`;
+  }).join('')||'<div style="text-align:center;padding:1.5rem;color:#aaa">✓ No major flags</div>';
+
+  // Regrade
+  let html='';
+  PROMOTERS.filter(p=>p.avg!=null).forEach(p=>{
+    const should=gv(p.avg);const match=should===p.grade;
+    const go=['A++','A+','A','B','C'];const iS=go.indexOf(should);const iC=go.indexOf(p.grade);
+    const up=!match&&iS<iC;const dn=!match&&iS>iC;
+    const verdict=match?'<span style="color:#aaa;font-size:11px">✓ Accurate</span>':
+      up?`<span style="color:#0f6e56;font-weight:600;font-size:11px">↑ Upgrade → ${should}</span>`:
+      `<span style="color:#e24b4a;font-weight:600;font-size:11px">↓ Downgrade → ${should}</span>`;
+    html+=`<tr style="background:${up?'#f0faf6':dn?'#fff8f0':''}">
+      <td style="font-weight:500">${p.name}</td>
+      <td><span class="sbadge ${scls(p.status)}">${p.status}</span></td>
+      <td><span class="gbadge ${gcls(p.grade)}">${p.grade}</span></td>
+      <td style="text-align:right;font-weight:700;color:${gc(p.avg)}">${fmt(p.avg)}</td>
+      <td><span class="gbadge ${gcls(should)}">${should}</span></td>
+      <td>${verdict}</td></tr>`;
+  });
+  document.getElementById('regrade-tbody').innerHTML=html;
+}
+
+// ── STORES ──
+function buildStores(){
+  const goodEl=document.getElementById('good-stores');
+  const badEl=document.getElementById('bad-stores');
+
+  goodEl.innerHTML=STORES_RANKED.map(s=>{
+    const topVisit=[...s.visits].sort((a,b)=>b.v-a.v)[0];
+    const c=gc(s.avg);
+    const typeBg=s.type==='Atrium'?'#faeeda':s.type==='POG'?'#e6f1fb':'#eaf3de';
+    const typeColor=s.type==='Atrium'?'#633806':s.type==='POG'?'#185fa5':'#3b6d11';
+    const storeName=s.store.replace(/ — .*/,'');
+    return`<div class="scard" style="border-left:3px solid ${c}" onclick="showStore('${s.store.replace(/'/g,"\\'")}')">
+      <div class="scard-name">
+        <span>${storeName}</span>
+        <span style="font-size:9px;font-weight:700;background:${typeBg};color:${typeColor};padding:1px 6px;border-radius:4px;margin-left:4px">${s.type||'BMD'}</span>
+      </div>
+      <div style="font-size:10px;color:#aaa;margin-bottom:3px">${s.ch}</div>
+      <div style="font-size:22px;font-weight:700;color:${c};margin:4px 0">${fmt(s.avg)}<span style="font-size:12px;font-weight:400;color:#aaa">/day</span></div>
+      <div style="font-size:11px;color:#555;line-height:1.7">🏆 Best: <b>${topVisit.p}</b> ${fmt(topVisit.v)}<br>${s.n} promoter${s.n>1?'s':''} · ${s.days} days</div>
+      <div class="scard-tag" style="background:${c}18;color:${c}">${s.tag||'✓ Good'}</div>
+    </div>`;
+  }).join('');
+
+  badEl.innerHTML=STORES_BAD.map(s=>{
+    const isAmber=s.tag&&(s.tag.startsWith('⚠️')||s.tag.startsWith('✅'));
+    const c=isAmber?'#ba7517':'#e24b4a';
+    const storeName=s.store.replace(/ — .*/,'');
+    return`<div class="scard" style="border-left:3px solid ${c}" onclick="showStore('${s.store.replace(/'/g,"\\'")}')">
+      <div class="scard-name">
+        <span>${storeName}</span>
+        <span style="font-size:9px;font-weight:700;background:#f0eee8;color:#888;padding:1px 6px;border-radius:4px;margin-left:4px">${s.ch}</span>
+      </div>
+      <div style="font-size:22px;font-weight:700;color:${c};margin:4px 0">${s.avg!==null?fmt(s.avg):'—'}<span style="font-size:12px;font-weight:400;color:#aaa">/day avg</span></div>
+      <div style="font-size:11px;color:#555;line-height:1.7">${s.n} promoters · ${s.days||'?'} days</div>
+      <div class="scard-tag" style="background:${c}18;color:${c}">${s.tag||'—'}</div>
+    </div>`;
+  }).join('');
+
+  // Chart
+  const allStores=[...STORES_RANKED,...STORES_BAD].sort((a,b)=>b.avg-a.avg);
+  const maxV=allStores[0].avg;
+  document.getElementById('store-chart').innerHTML=allStores.map(s=>{
+    const c=gc(s.avg);const pct=Math.max((s.avg/maxV)*100,1);
+    return`<div class="chart-row">
+      <div class="chart-label" onclick="showStore('${s.store.replace(/'/g,"\\'")} ')" style="cursor:pointer">${s.store}</div>
+      <div class="chart-bar-wrap">
+        <div class="chart-bar" style="width:${pct}%;background:${c}">${s.avg>150?fmt(s.avg):''}</div>
+      </div>
+      <div class="chart-val" style="color:${c}">${fmt(s.avg)}</div>
+    </div>`;
+  }).join('');
+}
+
+function showStore(name){
+  const s=[...STORES_RANKED,...STORES_BAD].find(x=>x.store===name||x.store.startsWith(name.trim()));
+  if(!s){return;}
+  document.getElementById('modal-title').textContent='📍 '+s.store;
+  const c=gc(s.avg);
+  const rows=s.visits.map(v=>`<tr>
+    <td style="font-weight:500">${v.p}</td>
+    <td style="text-align:center;color:#aaa">${v.d||'—'}</td>
+    <td style="text-align:right;font-weight:700;color:${gc(v.v)}">${fmt(v.v)}</td>
+    <td style="font-size:11px;color:#888">${v.note}</td>
+  </tr>`).join('');
+  document.getElementById('modal-body').innerHTML=`
+    <div style="background:${c}12;border-left:3px solid ${c};border-radius:0 7px 7px 0;padding:10px 12px;margin-bottom:12px;font-size:13px;color:${c==='#ccc'?'#444':c};line-height:1.6">${s.insight}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <div style="background:#f5f5f3;border-radius:7px;padding:5px 10px;font-size:12px">Chain: <b>${s.ch}</b></div>
+      <div style="background:#f5f5f3;border-radius:7px;padding:5px 10px;font-size:12px">Avg: <b style="color:${c}">${fmt(s.avg)}/day</b></div>
+      <div style="background:#f5f5f3;border-radius:7px;padding:5px 10px;font-size:12px">${s.n} promoters · ${s.days} days</div>
+    </div>
+    <div style="font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Promoter history</div>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>Promoter</th><th style="text-align:center">Days</th><th style="text-align:right">Incr/day</th><th>Note</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  document.getElementById('modal').style.display='flex';
+}
+function closeModal(){document.getElementById('modal').style.display='none';}
+window.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+// ── OVERVIEW ──
+function buildOverview(){
+  const active=PROMOTERS.filter(p=>p.status==='Active');
+  const kiv=PROMOTERS.filter(p=>p.status==='KIV');
+  const may=active.map(p=>p.monthly['May-26']).filter(v=>v!=null);
+  const mayAvg=may.length?Math.round(may.reduce((a,b)=>a+b,0)/may.length):null;
+  const topMay=[...PROMOTERS].filter(p=>p.monthly['May-26']!=null).sort((a,b)=>b.monthly['May-26']-a.monthly['May-26'])[0];
+  document.getElementById('ov-active').textContent=active.length;
+  document.getElementById('ov-avg').textContent=fmt(mayAvg);
+  document.getElementById('ov-top').textContent=topMay?.name||'—';
+  document.getElementById('ov-top-s').textContent=fmt(topMay?.monthly['May-26'])+' in May';
+  document.getElementById('ov-kiv').textContent=kiv.length;
+  document.getElementById('ov-kiv-n').textContent=kiv.map(p=>p.name).join(', ')||'None';
+  let app=0,ap=0,a=0,b=0,c=0;
+  PROMOTERS.filter(p=>!isLeaving(p)).forEach(p=>{if(p.avg>=200)app++;else if(p.avg>=168)ap++;else if(p.avg>=125)a++;else if(p.avg>=100)b++;else c++;});
+  ['app','ap','a','b','c'].forEach((k,i)=>document.getElementById('cnt-'+k).textContent=[app,ap,a,b,c][i]);
+  document.getElementById('ov-thead').innerHTML='<th>Name</th><th>Status</th><th>Grade</th><th style="text-align:right">Avg/day</th>'+MS.map(m=>`<th style="text-align:right">${m}</th>`).join('')+'<th>Trend</th>';
+  document.getElementById('ov-tbody').innerHTML=PROMOTERS.map(p=>`<tr>
+    <td style="font-weight:500;white-space:nowrap">${p.name}</td>
+    <td><span class="sbadge ${scls(p.status)}">${p.status}</span></td>
+    <td><span class="gbadge ${gcls(p.grade)}">${p.grade}</span></td>
+    <td style="font-weight:700;color:${gc(p.avg)};text-align:right">${fmt(p.avg)}</td>
+    ${MONTHS.map(m=>ch(p.monthly[m]??null)).join('')}
+    <td style="white-space:nowrap">${trendArrow(p)}</td></tr>`).join('');
+}
+
+// ── RANKING ──
+let rankM='avg';
+function buildRankFilters(){
+  const btns=['<button class="fbtn on" onclick="setRM(this,\'avg\')">All-time avg</button>'];
+  [...MONTHS].reverse().slice(0,6).forEach(m=>btns.push(`<button class="fbtn" onclick="setRM(this,'${m}')">${m}</button>`));
+  document.getElementById('rank-filters').innerHTML=btns.join('');
+}
+function setRM(el,m){document.querySelectorAll('#rank-filters .fbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');rankM=m;buildRanking();}
+function buildRanking(){
+  const gv2=p=>rankM==='avg'?p.avg:(p.monthly[rankM]??null);
+  const sorted=[...PROMOTERS].filter(p=>gv2(p)!=null).sort((a,b)=>(gv2(b)||0)-(gv2(a)||0));
+  const max=Math.max(...sorted.map(p=>Math.max(gv2(p)||0,0)),1);
+  document.getElementById('rank-title').textContent=rankM==='avg'?'Ranking — all-time average incr/day':`Ranking — ${rankM} incr/day`;
+  document.getElementById('rank-tbody').innerHTML=sorted.map((p,i)=>{
+    const v=gv2(p);const pct=Math.max(0,((v||0)/max)*100);const c=gc(v);
+    return`<tr><td style="color:#bbb;font-size:11px;width:28px">${i+1}</td>
+    <td style="font-weight:500;white-space:nowrap">${p.name}</td>
+    <td><span class="gbadge ${gcls(p.grade)}">${p.grade}</span></td>
+    <td><span class="sbadge ${scls(p.status)}">${p.status}</span></td>
+    <td style="font-weight:700;color:${c};text-align:right;white-space:nowrap">${fmt(v)}</td>
+    <td style="min-width:100px"><div style="display:flex;align-items:center;gap:6px;padding:0 4px"><div class="rbar-bg"><div class="rbar-fill" style="width:${pct}%;background:${c}"></div></div></div></td></tr>`;
+  }).join('');
+}
+
+// ── TREND ──
+let tf='all';
+function setTF(el,f){document.querySelectorAll('#trend-filters .fbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');tf=f;buildTrend();}
+function buildTrend(){
+  const ps=tf==='all'?PROMOTERS:tf==='Terminated'?PROMOTERS.filter(p=>isLeaving(p)):PROMOTERS.filter(p=>p.status===tf);
+  let html=`<table><thead><tr><th>Name</th><th>Grade</th>${MS.map(m=>`<th style="text-align:right">${m}</th>`).join('')}<th style="text-align:right">Avg</th><th style="text-align:center">Q1</th><th style="text-align:center">Q2</th><th style="text-align:center">Q3</th></tr></thead><tbody>`;
+  ps.forEach(p=>{html+=`<tr><td style="font-weight:500;white-space:nowrap">${p.name}</td><td><span class="gbadge ${gcls(p.grade)}">${p.grade}</span></td>${MONTHS.map(m=>ch(p.monthly[m]??null)).join('')}<td style="text-align:right;font-weight:700;color:${gc(p.avg)}">${fmt(p.avg)}</td><td style="text-align:center;color:${gc(p.q1)}">${p.q1!=null?fmt(p.q1):'—'}</td><td style="text-align:center;color:${gc(p.q2)}">${p.q2!=null?fmt(p.q2):'—'}</td><td style="text-align:center;color:${gc(p.q3)}">${p.q3!=null?fmt(p.q3):'—'}</td></tr>`;});
+  html+=`</tbody></table>`;
+  document.getElementById('trend-table').innerHTML=html;
+}
+
+// ── INDIVIDUAL ──
+function buildIndSel(){
+  const sel=document.getElementById('p-sel');
+  sel.innerHTML='<option value="">— Select a promoter —</option>';
+  PROMOTERS.forEach(p=>{const o=document.createElement('option');o.value=p.name;o.textContent=`${p.name} (${p.grade}) — ${p.status}`;sel.appendChild(o);});
+}
+function showInd(){
+  const p=PROMOTERS.find(x=>x.name===document.getElementById('p-sel').value);
+  if(!p){document.getElementById('ind-content').innerHTML='';return;}
+  const vals=MONTHS.map(m=>p.monthly[m]??null);
+  const nonNull=vals.filter(v=>v!=null);
+  const maxV=Math.max(...nonNull.map(v=>Math.max(v,0)),200);
+  const BAR_H=90;
+  let bars=vals.map((v,i)=>{
+    const h=v==null?0:Math.max(0,(v/maxV)*BAR_H);const c=gc(v);
+    return`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0">
+      <div style="font-size:9px;font-weight:600;color:${c};white-space:nowrap">${v!=null?fmt(v):''}</div>
+      <div style="flex:1;display:flex;align-items:flex-end;width:100%"><div style="width:100%;height:${h}px;background:${c};border-radius:3px 3px 0 0;min-height:${v!=null?2:0}px"></div></div>
+      <div style="font-size:9px;color:#aaa">${MS[i]}</div></div>`;
+  }).join('');
+  let thresh=[{v:200,l:'A++',c:'#085041'},{v:168,l:'A+',c:'#0f6e56'},{v:125,l:'A',c:'#3b6d11'},{v:100,l:'B',c:'#ba7517'}]
+    .map(t=>{const top=(1-t.v/maxV)*BAR_H;return top>0&&top<BAR_H?`<div style="position:absolute;left:0;right:0;top:${top+20}px;border-top:1px dashed ${t.c}"><span style="position:absolute;right:0;top:-10px;font-size:9px;color:${t.c};font-weight:600">${t.l}</span></div>`:''}).join('');
+  const best=nonNull.length?Math.max(...nonNull):null;const worst=nonNull.length?Math.min(...nonNull):null;
+  const storeRows=(p.bestStores||[]).map(s=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:.5px solid #f0eee8;font-size:12px"><span style="color:#555">📍 ${s.s}</span><span style="font-weight:600;color:${gc(s.v)}">${fmt(s.v)}/day</span></div>`).join('');
+
+  document.getElementById('ind-content').innerHTML=`
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+        <div><div style="font-size:20px;font-weight:700">${p.name}</div>
+          <div style="display:flex;gap:6px;margin-top:5px;align-items:center;flex-wrap:wrap">
+            <span class="gbadge ${gcls(p.grade)}" style="font-size:13px;padding:3px 9px">${p.grade}</span>
+            <span class="sbadge ${scls(p.status)}">${p.status}</span>
+            ${p.salary?`<span style="font-size:11px;color:#aaa">Base: $${p.salary.toLocaleString()}</span>`:''}
+            ${p.joined?`<span style="font-size:11px;color:#aaa">Joined: ${p.joined}</span>`:''}
+          </div></div>
+        <div style="text-align:right"><div style="font-size:11px;color:#aaa">Overall avg</div>
+          <div style="font-size:28px;font-weight:700;color:${gc(p.avg)}">${fmt(p.avg)}</div>
+          <div>${trendArrow(p)}</div></div>
+      </div>
+      <div style="position:relative">${thresh}
+        <div style="display:flex;gap:3px;align-items:flex-end;height:${BAR_H+24}px;padding-top:20px">${bars}</div>
+      </div>
+    </div>
+    <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
+      <div class="met"><div class="ml">Best month</div><div class="mv g">${fmt(best)}</div></div>
+      <div class="met"><div class="ml">Worst month</div><div class="mv ${worst!=null&&worst<0?'r':'o'}">${fmt(worst)}</div></div>
+      <div class="met"><div class="ml">Months tracked</div><div class="mv">${p.n}</div></div>
+    </div>
+    <div class="card">
+      <div class="ct">Quarterly performance</div>
+      <div class="qgrid">
+        <div class="qbox"><div class="ql">Q1 Oct–Dec '25</div><div class="qv" style="color:${gc(p.q1)}">${p.q1!=null?fmt(p.q1):'—'}</div><div style="font-size:10px;color:#aaa;margin-top:2px">${p.q1!=null?gv(p.q1):''}</div></div>
+        <div class="qbox"><div class="ql">Q2 Jan–Mar '26</div><div class="qv" style="color:${gc(p.q2)}">${p.q2!=null?fmt(p.q2):'—'}</div><div style="font-size:10px;color:#aaa;margin-top:2px">${p.q2!=null?gv(p.q2):''}</div></div>
+        <div class="qbox"><div class="ql">Q3 Apr–Jun '26</div><div class="qv" style="color:${gc(p.q3)}">${p.q3!=null?fmt(p.q3):'—'}</div><div style="font-size:10px;color:#aaa;margin-top:2px">${p.q3!=null?gv(p.q3):''}</div></div>
+      </div>
+    </div>
+    ${p.bestStores&&p.bestStores.length?`<div class="card"><div class="ct">📍 Best stores for ${p.name}</div>
+      <div style="margin-bottom:8px;background:#f5f5f3;border-radius:7px;padding:8px 10px;font-size:12px;color:#555">💡 ${p.fit||'—'}</div>
+      ${storeRows}</div>`:''}
+    <div class="card">
+      <div class="ct">Month-by-month vs $167 target</div>
+      <table><thead><tr><th>Month</th><th style="text-align:right">Incr/day</th><th style="text-align:center">Grade</th><th>vs $167/day target</th></tr></thead><tbody>
+      ${MONTHS.map((m,i)=>{const v=p.monthly[m];if(v==null)return`<tr><td style="color:#bbb">${MS[i]}</td><td colspan="3" style="color:#e0ded8">—</td></tr>`;
+        const g=gv(v);const gap=v-167;const gs=gap>=0?`<span style="color:#0f6e56">+$${gap.toFixed(0)} above</span>`:`<span style="color:#e24b4a">$${Math.abs(gap).toFixed(0)} below</span>`;
+        return`<tr><td>${m}</td><td style="text-align:right;font-weight:600;color:${gc(v)}">${fmt(v)}</td><td style="text-align:center"><span class="gbadge ${gcls(g)}">${g}</span></td><td>${gs}</td></tr>`;}).join('')}
+      </tbody></table>
+    </div>`;
+}
+
+// ── Q&A ──
+const QA=[
+  {q:"Who is the #1 best promoter overall?",a:"<b>Xirong</b> has the highest calculated avg at $228/day over 8 months, with a $637 peak at Vivocity. But <b>Joanne</b> at $222/day over 10 months with a $670 peak at JEM is arguably the more proven performer — 10 months of data vs 8, and 7/10 months above $167. Both are elite. Xirong has a higher ceiling; Joanne is more consistent."},
+  {q:"Who is the most consistent promoter?",a:"<b>Joanne</b> — 7 out of 10 months above $167/day. No one with 6+ months comes close. <b>Jojo</b> had $193→$195→$197 over 3 months (SD of $1.9!) but only has 3 months of data — watch her closely."},
+  {q:"Which stores give the best returns?",a:"Top 5 by avg incr/day: <b>Vivocity $476</b> (Unity), <b>North Point $423</b>, <b>Compass One WS $342</b>, <b>East Point FP $331</b>, <b>JEM $308</b>. JEM has the highest single result ever — Joanne $670/day. Hougang One is an underrated gem averaging $292 with 7 promoters."},
+  {q:"Which stores should we stop using?",a:"<b>NEX</b> — 8 promoters, most went negative, $56 avg. Baseline $190 is too high. <b>Paragon</b> — Agnes and Wei Wei both negative, avg $23. Wrong customer profile. <b>Great World GD/WS</b> (regular BMD, not Xirong's 1-day event) — avg $37 without the outlier. Remove these 3 from regular rotation."},
+  {q:"Who should go to Vivocity?",a:"Only <b>Xirong</b> has proven she can handle Vivocity ($637/day). Agnes also visited and got $314 — not bad! The $210 baseline is demanding — send A++/A+ only. Don't risk C or B grade promoters here."},
+  {q:"Who should anchor JEM?",a:"<b>Joanne</b> — $670/day is her best result ever, and she's consistent across 18.5 days there. Shirleen ($260) and Emerson ($370 — terminated) also did well. JEM (GD) seems to have a favourable setup for strong promoters."},
+  {q:"What's the Rowsyn and Parkway Parade story?",a:"Rowsyn got <b>$327/day over 9 days</b> at Parkway Parade in May — nobody expected that given the store's poor history. Sharon was -$30, Lynn Lau was -$58 there. So Rowsyn is the exception, not the rule. Recommend: send <b>Rowsyn-only</b> to Parkway Parade, don't generalise to others."},
+  {q:"What happened to Jojo in May?",a:"Jojo's May dropped to $90 — but it's because she was at <b>Tiong Bahru WS Vitastiq w/o structure</b>. This is a different setup from regular BMD and results are typically lower. Her GD and regular BMD results ($193-$195) are consistent. Move her back to regular BMD stores in June."},
+  {q:"Is Maco worth keeping?",a:"Borderline. 9-month avg $92 is below the $100 KIV threshold. But May $175 at Bedok Mall GD is his best month ever — and Bedok Mall clearly suits him. If June is also strong at Bedok Mall, consider giving him another chance with a fixed store assignment. If he drops again, replace."},
+  {q:"Who are the best newcomers?",a:"<b>Jolin</b> leads at $272/day avg — FP Bukit Merah $411, North Point $373, ION Orchard $278. <b>Coreen</b> $216 avg with a $291 May at Hougang One. <b>Sharon</b> opened with $314 at East Point but only 1 month. <b>Rowsyn</b> is surging — $141→$90→$167→$303, Q3 avg $235."},
+  {q:"Should we keep Carol?",a:"Carol's KIV status is justified. 8-month avg $91 with wild swings (Jan $200, Feb $51, Apr $39). May $166 is encouraging but the pattern isn't reliable. The Junction 8 $569 reading seems anomalous — likely a total not per-day figure. Decision: watch June. If she can't hold above $125, replace."},
+  {q:"What is the overall program trajectory?",a:"<b>Strongly improving.</b> May 2026 is the best month ever for most active promoters — Joanne $463, Nancy $449, Karen $382, Margaret $300, Rowsyn $303, Coreen $291. New intake (Jolin, Coreen, Sharon) is excellent. The main drag is Wei Wei and Carol's inconsistency. Remove underperforming stores (NEX, Paragon, Great World regular BMD) and results will improve further."},
+];
+function buildQA(){
+  document.getElementById('qa-list').innerHTML=QA.map((q,i)=>`
+    <div class="qa-item" id="qa-${i}">
+      <div class="qa-q" onclick="toggleQA(${i})"><span>${q.q}</span><span class="qa-arrow">▼</span></div>
+      <div class="qa-a" id="qa-a-${i}">${q.a}</div>
+    </div>`).join('');
+}
+function toggleQA(i){
+  const item=document.getElementById('qa-'+i);const ans=document.getElementById('qa-a-'+i);
+  const open=item.classList.contains('open');
+  item.classList.toggle('open',!open);ans.classList.toggle('vis',!open);
+}
+
+// ── FILE UPLOAD ──
+function toggleDrop(){document.getElementById('dz').classList.toggle('vis');}
+function handleDrop(ev){ev.preventDefault();document.getElementById('dz').classList.remove('drag');handleFile(ev.dataTransfer.files[0]);}
+function handleFile(file){
+  if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});parseWB(wb);}catch(err){alert('Error: '+err.message);}};
+  r.readAsArrayBuffer(file);
+}
+function parseWB(wb){
+  const ws=wb.Sheets[wb.SheetNames.find(s=>s.toLowerCase().includes('promoter grade'))||wb.SheetNames[0]];
+  const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+  const hdr=raw[0];
+  const newMonths=[],newMS=[];
+  for(let c=29;c<=45;c++){
+    const v=hdr[c];if(!v)break;
+    let d=v instanceof Date?v:new Date(typeof v==='number'?Math.round((v-25569)*86400*1000):v);
+    if(isNaN(d))break;
+    newMonths.push(d.toLocaleDateString('en-SG',{month:'short',year:'2-digit'}).replace(' ','-'));
+    newMS.push(d.toLocaleDateString('en-SG',{month:'short'}));
+  }
+  const newP=[];
+  for(let r=1;r<Math.min(raw.length,35);r++){
+    const row=raw[r];const name=row[2];
+    if(!name||typeof name!=='string'||!name.trim())continue;
+    const grade=row[5]?String(row[5]).trim():'—';const salary=parseFloat(row[6])||null;const status=row[7]?String(row[7]).trim():'—';
+    const monthly={};
+    newMonths.forEach((m,i)=>{const v=row[29+i];if(v!=null&&!isNaN(parseFloat(v)))monthly[m]=Math.round(parseFloat(v)*10)/10;});
+    if(!Object.keys(monthly).length)continue;
+    const vals=Object.values(monthly).filter(v=>v!=null);
+    const avg=vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10:null;
+    const q1=row[48]&&!isNaN(parseFloat(row[48]))?Math.round(parseFloat(row[48])*10)/10:null;
+    const q2=row[49]&&!isNaN(parseFloat(row[49]))?Math.round(parseFloat(row[49])*10)/10:null;
+    const q3=row[50]&&!isNaN(parseFloat(row[50]))?Math.round(parseFloat(row[50])*10)/10:null;
+    const ex=PROMOTERS.find(p=>p.name===name.trim());
+    newP.push({name:name.trim(),grade,salary,status,monthly,avg,n:vals.length,q1,q2,q3,
+      fit:ex?.fit||'—',bestStores:ex?.bestStores||[],alert:ex?.alert||null,joined:ex?.joined||null});
+  }
+  PROMOTERS.length=0;newP.forEach(p=>PROMOTERS.push(p));
+  MONTHS.length=0;newMonths.forEach(m=>MONTHS.push(m));
+  MS.length=0;newMS.forEach(m=>MS.push(m));
+  document.getElementById('last-updated').textContent=`Updated: ${new Date().toLocaleDateString('en-SG',{day:'numeric',month:'short',year:'numeric'})} · ${PROMOTERS.length} promoters`;
+  document.getElementById('dz').classList.remove('vis');
+  buildAll();
+}
+
+
+
+// ── STORE ADVISOR DATA ──
+const STORE_ADVISOR_DATA = [
+  {
+    "store": "AMK Hub",
+    "chain": "Guardian / Unity / Fairprice",
+    "baseline": 235.3,
+    "promos": [
+      {
+        "p": "Karen",
+        "days": 5.0,
+        "avg": 586.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 5.0,
+            "i": 586.0
+          }
+        ]
+      },
+      {
+        "p": "Nancy",
+        "days": 39.0,
+        "avg": 365.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 1.0,
+            "i": 211.0
+          },
+          {
+            "m": "Apr-26",
+            "d": 16.0,
+            "i": 214.0
+          },
+          {
+            "m": "Apr-26",
+            "d": 2.0,
+            "i": 588.0
+          },
+          {
+            "m": "May-26",
+            "d": 20.0,
+            "i": 449.0
+          }
+        ]
+      },
+      {
+        "p": "Xirong",
+        "days": 2.0,
+        "avg": 307.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 2.0,
+            "i": 307.0
+          }
+        ]
+      },
+      {
+        "p": "Wei Wei",
+        "days": 2.0,
+        "avg": 34.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 2.0,
+            "i": 34.0
+          }
+        ]
+      },
+      {
+        "p": "Emerson",
+        "days": 2.0,
+        "avg": -30.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 2.0,
+            "i": -30.0
+          }
+        ]
+      },
+      {
+        "p": "Josephine",
+        "days": 20.0,
+        "avg": -35.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 20.0,
+            "i": -35.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Bedok Mall",
+    "chain": "Guardian",
+    "baseline": 69.0,
+    "promos": [
+      {
+        "p": "Maco",
+        "days": 32.0,
+        "avg": 136.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 19.0,
+            "i": 185.0
+          },
+          {
+            "m": "Apr-26",
+            "d": 2.0,
+            "i": 13.0
+          },
+          {
+            "m": "May-26",
+            "d": 11.0,
+            "i": 211.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Bedok North",
+    "chain": "Unity / Fairprice",
+    "baseline": 130.7,
+    "promos": [
+      {
+        "p": "Maco",
+        "days": 2.0,
+        "avg": -86.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 1.0,
+            "i": -131.0
+          },
+          {
+            "m": "Mar-26",
+            "d": 1.0,
+            "i": -40.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Bedok North St",
+    "chain": "Unity",
+    "baseline": 130.0,
+    "promos": [
+      {
+        "p": "Maco",
+        "days": 18.0,
+        "avg": 78.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 18.0,
+            "i": 78.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Bugis",
+    "chain": "Guardian / Watsons",
+    "baseline": 71.8,
+    "promos": [
+      {
+        "p": "Helen",
+        "days": 1.0,
+        "avg": 343.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 1.0,
+            "i": 343.0
+          }
+        ]
+      },
+      {
+        "p": "Jojo",
+        "days": 5.0,
+        "avg": 202.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 5.0,
+            "i": 202.0
+          }
+        ]
+      },
+      {
+        "p": "Joanne",
+        "days": 10.0,
+        "avg": 168.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 10.0,
+            "i": 168.0
+          }
+        ]
+      },
+      {
+        "p": "Wei Wei",
+        "days": 2.0,
+        "avg": 117.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 2.0,
+            "i": 117.0
+          }
+        ]
+      },
+      {
+        "p": "Xirong",
+        "days": 3.0,
+        "avg": 66.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 3.0,
+            "i": 66.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Bugis Junction",
+    "chain": "Guardian",
+    "baseline": 61.0,
+    "promos": [
+      {
+        "p": "Shirleen",
+        "days": 8.5,
+        "avg": 106.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 8.5,
+            "i": 106.0
+          }
+        ]
+      },
+      {
+        "p": "Rowsyn",
+        "days": 4.0,
+        "avg": 104.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 4.0,
+            "i": 104.0
+          }
+        ]
+      },
+      {
+        "p": "Wei Wei",
+        "days": 2.0,
+        "avg": 88.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 2.0,
+            "i": 88.0
+          }
+        ]
+      },
+      {
+        "p": "Coreen",
+        "days": 6.0,
+        "avg": 74.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 6.0,
+            "i": 74.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Bukit Panjang Plaza",
+    "chain": "Unity",
+    "baseline": 77.0,
+    "promos": [
+      {
+        "p": "Joanne",
+        "days": 21.0,
+        "avg": 228.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 21.0,
+            "i": 228.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Causeway Point",
+    "chain": "Guardian",
+    "baseline": 79.2,
+    "promos": [
+      {
+        "p": "Jolin",
+        "days": 1.0,
+        "avg": 161.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 1.0,
+            "i": 161.0
+          }
+        ]
+      },
+      {
+        "p": "Tze-Wei",
+        "days": 19.0,
+        "avg": -6.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 18.0,
+            "i": 67.0
+          },
+          {
+            "m": "Mar-26",
+            "d": 1.0,
+            "i": -79.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Clementi",
+    "chain": "Fairprice",
+    "baseline": 28.0,
+    "promos": [
+      {
+        "p": "Helen",
+        "days": 11.0,
+        "avg": 197.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 1.0,
+            "i": 141.0
+          },
+          {
+            "m": "Apr-26",
+            "d": 10.0,
+            "i": 252.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Clementi Mall",
+    "chain": "Guardian / Unity / Watsons",
+    "baseline": 117.6,
+    "promos": [
+      {
+        "p": "Joanne",
+        "days": 10.0,
+        "avg": 308.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 1.0,
+            "i": 509.0
+          },
+          {
+            "m": "Apr-26",
+            "d": 9.0,
+            "i": 108.0
+          }
+        ]
+      },
+      {
+        "p": "Helen",
+        "days": 19.0,
+        "avg": 279.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 19.0,
+            "i": 279.0
+          }
+        ]
+      },
+      {
+        "p": "Emerson",
+        "days": 1.0,
+        "avg": 221.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 1.0,
+            "i": 221.0
+          }
+        ]
+      },
+      {
+        "p": "Karen",
+        "days": 14.0,
+        "avg": 170.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 11.0,
+            "i": 172.0
+          },
+          {
+            "m": "Apr-26",
+            "d": 3.0,
+            "i": 168.0
+          }
+        ]
+      },
+      {
+        "p": "Wei Wei",
+        "days": 6.0,
+        "avg": 113.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 6.0,
+            "i": 113.0
+          }
+        ]
+      },
+      {
+        "p": "Esther",
+        "days": 8.0,
+        "avg": 40.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 8.0,
+            "i": 40.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Compass One",
+    "chain": "Guardian / Watsons",
+    "baseline": 81.9,
+    "promos": [
+      {
+        "p": "Ming Li",
+        "days": 7.0,
+        "avg": 87.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 7.0,
+            "i": 87.0
+          }
+        ]
+      },
+      {
+        "p": "Iris",
+        "days": 11.0,
+        "avg": 68.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 11.0,
+            "i": 68.0
+          }
+        ]
+      },
+      {
+        "p": "Rowsyn",
+        "days": 7.0,
+        "avg": 52.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 5.0,
+            "i": 141.0
+          },
+          {
+            "m": "Apr-26",
+            "d": 2.0,
+            "i": -38.0
+          }
+        ]
+      },
+      {
+        "p": "Angie",
+        "days": 17.0,
+        "avg": 51.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 1.0,
+            "i": -28.0
+          },
+          {
+            "m": "Apr-26",
+            "d": 16.0,
+            "i": 131.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Compass One (Vitastiq) w/o Structure",
+    "chain": "Watsons",
+    "baseline": 95.0,
+    "promos": [
+      {
+        "p": "Xirong",
+        "days": 12.0,
+        "avg": 342.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 12.0,
+            "i": 342.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "East Point",
+    "chain": "Fairprice",
+    "baseline": 87.0,
+    "promos": [
+      {
+        "p": "Margaret",
+        "days": 16.0,
+        "avg": 340.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 2.0,
+            "i": 380.0
+          },
+          {
+            "m": "May-26",
+            "d": 14.0,
+            "i": 300.0
+          }
+        ]
+      },
+      {
+        "p": "Sharon",
+        "days": 10.0,
+        "avg": 314.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 10.0,
+            "i": 314.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Fairprice Bukit Merah Central",
+    "chain": "Unity / Fairprice",
+    "baseline": 182.0,
+    "promos": [
+      {
+        "p": "Jolin",
+        "days": 3.0,
+        "avg": 411.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 3.0,
+            "i": 411.0
+          }
+        ]
+      },
+      {
+        "p": "Carol",
+        "days": 20.0,
+        "avg": 166.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 20.0,
+            "i": 166.0
+          }
+        ]
+      },
+      {
+        "p": "Wai Lin",
+        "days": 15.0,
+        "avg": 150.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 15.0,
+            "i": 150.0
+          }
+        ]
+      },
+      {
+        "p": "Agnes",
+        "days": 3.0,
+        "avg": 98.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 3.0,
+            "i": 98.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Great World",
+    "chain": "Guardian / Watsons",
+    "baseline": 67.3,
+    "promos": [
+      {
+        "p": "Xirong",
+        "days": 1.0,
+        "avg": 1095.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 1.0,
+            "i": 1095.0
+          }
+        ]
+      },
+      {
+        "p": "Carol",
+        "days": 9.0,
+        "avg": 124.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 9.0,
+            "i": 124.0
+          }
+        ]
+      },
+      {
+        "p": "Wilson",
+        "days": 22.0,
+        "avg": 55.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 2.0,
+            "i": 27.0
+          },
+          {
+            "m": "May-26",
+            "d": 12.0,
+            "i": 75.0
+          },
+          {
+            "m": "Apr-26",
+            "d": 8.0,
+            "i": 63.0
+          }
+        ]
+      },
+      {
+        "p": "Michelle",
+        "days": 4.0,
+        "avg": 28.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 4.0,
+            "i": 28.0
+          }
+        ]
+      },
+      {
+        "p": "Wai Lin",
+        "days": 6.0,
+        "avg": 1.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 6.0,
+            "i": 1.0
+          }
+        ]
+      },
+      {
+        "p": "Maco",
+        "days": 2.0,
+        "avg": -25.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 2.0,
+            "i": -25.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Great World City",
+    "chain": "Unknown",
+    "baseline": 90.0,
+    "promos": [
+      {
+        "p": "Jojo",
+        "days": 1.0,
+        "avg": 30.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 1.0,
+            "i": 30.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Heartbeat @ Bedok",
+    "chain": "Watsons",
+    "baseline": 68.0,
+    "promos": [
+      {
+        "p": "Michelle",
+        "days": 1.0,
+        "avg": 93.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 1.0,
+            "i": 93.0
+          }
+        ]
+      },
+      {
+        "p": "Helen",
+        "days": 1.0,
+        "avg": 17.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 1.0,
+            "i": 17.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Hougang One",
+    "chain": "Unity",
+    "baseline": 83.4,
+    "promos": [
+      {
+        "p": "Shirleen",
+        "days": 2.0,
+        "avg": 592.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 2.0,
+            "i": 592.0
+          }
+        ]
+      },
+      {
+        "p": "Xirong",
+        "days": 5.0,
+        "avg": 468.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 5.0,
+            "i": 468.0
+          }
+        ]
+      },
+      {
+        "p": "Karen",
+        "days": 4.0,
+        "avg": 360.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 4.0,
+            "i": 360.0
+          }
+        ]
+      },
+      {
+        "p": "Coreen",
+        "days": 18.0,
+        "avg": 291.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 18.0,
+            "i": 291.0
+          }
+        ]
+      },
+      {
+        "p": "Angie",
+        "days": 7.0,
+        "avg": 224.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 3.0,
+            "i": 336.0
+          },
+          {
+            "m": "Mar-26",
+            "d": 1.0,
+            "i": 88.0
+          },
+          {
+            "m": "Apr-26",
+            "d": 3.0,
+            "i": 248.0
+          }
+        ]
+      },
+      {
+        "p": "Agnes",
+        "days": 4.0,
+        "avg": 148.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 4.0,
+            "i": 148.0
+          }
+        ]
+      },
+      {
+        "p": "Wai Lin",
+        "days": 5.0,
+        "avg": 97.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 5.0,
+            "i": 97.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Hyper JEM",
+    "chain": "Fairprice",
+    "baseline": 63.0,
+    "promos": [
+      {
+        "p": "Esther",
+        "days": 11.0,
+        "avg": 119.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 11.0,
+            "i": 119.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "IMM",
+    "chain": "Guardian / Watsons",
+    "baseline": 50.4,
+    "promos": [
+      {
+        "p": "Agnes",
+        "days": 1.0,
+        "avg": 246.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 1.0,
+            "i": 246.0
+          }
+        ]
+      },
+      {
+        "p": "Tze-Wei",
+        "days": 1.0,
+        "avg": 44.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 1.0,
+            "i": 44.0
+          }
+        ]
+      },
+      {
+        "p": "Carol",
+        "days": 14.0,
+        "avg": 14.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 14.0,
+            "i": 14.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "ION Orchard",
+    "chain": "Guardian",
+    "baseline": 69.9,
+    "promos": [
+      {
+        "p": "Carol",
+        "days": 6.0,
+        "avg": 107.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 6.0,
+            "i": 107.0
+          }
+        ]
+      },
+      {
+        "p": "Josephine",
+        "days": 7.0,
+        "avg": 80.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 7.0,
+            "i": 80.0
+          }
+        ]
+      },
+      {
+        "p": "Emerson",
+        "days": 5.0,
+        "avg": 3.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 5.0,
+            "i": 3.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Ion Orchard (3 weeks)",
+    "chain": "Guardian",
+    "baseline": 70.0,
+    "promos": [
+      {
+        "p": "Jolin",
+        "days": 11.0,
+        "avg": 278.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 11.0,
+            "i": 278.0
+          }
+        ]
+      },
+      {
+        "p": "Michelle",
+        "days": 4.0,
+        "avg": 25.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 4.0,
+            "i": 25.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "JEM",
+    "chain": "Guardian / Watsons",
+    "baseline": 78.0,
+    "promos": [
+      {
+        "p": "Joanne",
+        "days": 19.5,
+        "avg": 670.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 1.0,
+            "i": 877.0
+          },
+          {
+            "m": "May-26",
+            "d": 18.5,
+            "i": 463.0
+          }
+        ]
+      },
+      {
+        "p": "Emerson",
+        "days": 2.0,
+        "avg": 370.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 2.0,
+            "i": 370.0
+          }
+        ]
+      },
+      {
+        "p": "Xirong",
+        "days": 2.0,
+        "avg": 300.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 2.0,
+            "i": 300.0
+          }
+        ]
+      },
+      {
+        "p": "Shirleen",
+        "days": 5.0,
+        "avg": 260.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 5.0,
+            "i": 260.0
+          }
+        ]
+      },
+      {
+        "p": "Coreen",
+        "days": 2.0,
+        "avg": 210.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 2.0,
+            "i": 210.0
+          }
+        ]
+      },
+      {
+        "p": "Carol",
+        "days": 1.0,
+        "avg": 195.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 1.0,
+            "i": 195.0
+          }
+        ]
+      },
+      {
+        "p": "Wai Lin",
+        "days": 1.0,
+        "avg": 157.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 1.0,
+            "i": 157.0
+          }
+        ]
+      },
+      {
+        "p": "Lynn",
+        "days": 15.0,
+        "avg": 125.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 15.0,
+            "i": 125.0
+          }
+        ]
+      },
+      {
+        "p": "Tze-Wei",
+        "days": 10.0,
+        "avg": 125.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 10.0,
+            "i": 125.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Junction 8",
+    "chain": "Guardian / Unity",
+    "baseline": 85.4,
+    "promos": [
+      {
+        "p": "Carol",
+        "days": 1.0,
+        "avg": 569.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 1.0,
+            "i": 569.0
+          }
+        ]
+      },
+      {
+        "p": "Rowsyn",
+        "days": 2.0,
+        "avg": 198.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 2.0,
+            "i": 198.0
+          }
+        ]
+      },
+      {
+        "p": "Nancy",
+        "days": 19.0,
+        "avg": 172.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 19.0,
+            "i": 172.0
+          }
+        ]
+      },
+      {
+        "p": "Esther",
+        "days": 2.0,
+        "avg": 136.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 2.0,
+            "i": 136.0
+          }
+        ]
+      },
+      {
+        "p": "Xirong",
+        "days": 2.0,
+        "avg": 103.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 2.0,
+            "i": 103.0
+          }
+        ]
+      },
+      {
+        "p": "Karen",
+        "days": 3.0,
+        "avg": 70.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 3.0,
+            "i": 70.0
+          }
+        ]
+      },
+      {
+        "p": "Michelle",
+        "days": 2.0,
+        "avg": -64.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 2.0,
+            "i": -64.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Jurong Point",
+    "chain": "Guardian / Unity / Watsons",
+    "baseline": 71.7,
+    "promos": [
+      {
+        "p": "Nancy",
+        "days": 1.0,
+        "avg": 717.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 1.0,
+            "i": 717.0
+          }
+        ]
+      },
+      {
+        "p": "Xirong",
+        "days": 10.0,
+        "avg": 257.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 10.0,
+            "i": 257.0
+          }
+        ]
+      },
+      {
+        "p": "Helen",
+        "days": 18.0,
+        "avg": 80.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 8.0,
+            "i": 73.0
+          },
+          {
+            "m": "Mar-26",
+            "d": 10.0,
+            "i": 87.0
+          }
+        ]
+      },
+      {
+        "p": "Shirleen",
+        "days": 16.0,
+        "avg": 79.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 15.0,
+            "i": 96.0
+          },
+          {
+            "m": "Mar-26",
+            "d": 1.0,
+            "i": 61.0
+          }
+        ]
+      },
+      {
+        "p": "Angie",
+        "days": 2.0,
+        "avg": 4.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 2.0,
+            "i": 4.0
+          }
+        ]
+      },
+      {
+        "p": "Wei Wei",
+        "days": 4.0,
+        "avg": 3.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 4.0,
+            "i": 3.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Lot One",
+    "chain": "Unity",
+    "baseline": 95.1,
+    "promos": [
+      {
+        "p": "Karen",
+        "days": 1.0,
+        "avg": 258.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 1.0,
+            "i": 258.0
+          }
+        ]
+      },
+      {
+        "p": "Angie",
+        "days": 19.0,
+        "avg": 101.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 19.0,
+            "i": 101.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "NAC",
+    "chain": "Watsons",
+    "baseline": 240.0,
+    "promos": [
+      {
+        "p": "Karen",
+        "days": 14.0,
+        "avg": 12.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 14.0,
+            "i": 12.0
+          }
+        ]
+      },
+      {
+        "p": "Joanne",
+        "days": 1.0,
+        "avg": -240.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 1.0,
+            "i": -240.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "NEX",
+    "chain": "Guardian / Watsons",
+    "baseline": 156.2,
+    "promos": [
+      {
+        "p": "Joanne",
+        "days": 2.0,
+        "avg": 292.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 2.0,
+            "i": 292.0
+          }
+        ]
+      },
+      {
+        "p": "Wai Lin",
+        "days": 8.0,
+        "avg": 120.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 8.0,
+            "i": 120.0
+          }
+        ]
+      },
+      {
+        "p": "Nancy",
+        "days": 6.0,
+        "avg": 99.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 1.0,
+            "i": 154.0
+          },
+          {
+            "m": "Feb-26",
+            "d": 5.0,
+            "i": 45.0
+          }
+        ]
+      },
+      {
+        "p": "Xirong",
+        "days": 3.0,
+        "avg": 83.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 2.0,
+            "i": 8.0
+          },
+          {
+            "m": "Apr-26",
+            "d": 1.0,
+            "i": 159.0
+          }
+        ]
+      },
+      {
+        "p": "Wei Wei",
+        "days": 6.0,
+        "avg": 8.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 6.0,
+            "i": 8.0
+          }
+        ]
+      },
+      {
+        "p": "Agnes",
+        "days": 6.0,
+        "avg": -67.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 6.0,
+            "i": -67.0
+          }
+        ]
+      },
+      {
+        "p": "Emerson",
+        "days": 5.0,
+        "avg": -72.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 5.0,
+            "i": -72.0
+          }
+        ]
+      },
+      {
+        "p": "Tze-Wei",
+        "days": 4.0,
+        "avg": -90.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 4.0,
+            "i": -90.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "NEX (Near Saturation? No fixtures and BMD? ) Look at schedule to move away",
+    "chain": "Unknown",
+    "baseline": 153.0,
+    "promos": [
+      {
+        "p": "Xirong",
+        "days": 8.0,
+        "avg": 73.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 8.0,
+            "i": 73.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Ngee Ann City (Vita) w/o structure",
+    "chain": "Unknown",
+    "baseline": 237.0,
+    "promos": [
+      {
+        "p": "Shirleen",
+        "days": 2.0,
+        "avg": -63.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 2.0,
+            "i": -63.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "North Point",
+    "chain": "Unity",
+    "baseline": 65.0,
+    "promos": [
+      {
+        "p": "Karen",
+        "days": 1.0,
+        "avg": 474.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 1.0,
+            "i": 474.0
+          }
+        ]
+      },
+      {
+        "p": "Jolin",
+        "days": 17.0,
+        "avg": 373.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 17.0,
+            "i": 373.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Northpoint",
+    "chain": "Fairprice / Guardian / Watsons",
+    "baseline": 120.0,
+    "promos": [
+      {
+        "p": "Xirong",
+        "days": 1.0,
+        "avg": 539.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 1.0,
+            "i": 539.0
+          }
+        ]
+      },
+      {
+        "p": "Joanne",
+        "days": 5.0,
+        "avg": 312.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 4.0,
+            "i": 129.0
+          },
+          {
+            "m": "Mar-26",
+            "d": 1.0,
+            "i": 495.0
+          }
+        ]
+      },
+      {
+        "p": "Nancy",
+        "days": 14.0,
+        "avg": 70.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 14.0,
+            "i": 70.0
+          }
+        ]
+      },
+      {
+        "p": "Emerson",
+        "days": 1.0,
+        "avg": 62.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 1.0,
+            "i": 62.0
+          }
+        ]
+      },
+      {
+        "p": "Wei Wei",
+        "days": 1.0,
+        "avg": -89.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 1.0,
+            "i": -89.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Novena Square",
+    "chain": "Unknown",
+    "baseline": 75.3,
+    "promos": [
+      {
+        "p": "Shirleen",
+        "days": 29.5,
+        "avg": 153.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 18.5,
+            "i": 170.0
+          },
+          {
+            "m": "May-26",
+            "d": 8.0,
+            "i": 114.0
+          },
+          {
+            "m": "Apr-26",
+            "d": 3.0,
+            "i": 174.0
+          }
+        ]
+      },
+      {
+        "p": "Karen",
+        "days": 1.0,
+        "avg": 51.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 1.0,
+            "i": 51.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Old Airport Hawker Centre",
+    "chain": "Fairprice",
+    "baseline": 36.0,
+    "promos": [
+      {
+        "p": "Rowsyn",
+        "days": 18.0,
+        "avg": 99.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 18.0,
+            "i": 99.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Paragon",
+    "chain": "Guardian / Watsons",
+    "baseline": 157.7,
+    "promos": [
+      {
+        "p": "Maco",
+        "days": 8.0,
+        "avg": 59.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 7.0,
+            "i": 86.0
+          },
+          {
+            "m": "Mar-26",
+            "d": 1.0,
+            "i": 32.0
+          }
+        ]
+      },
+      {
+        "p": "Wei Wei",
+        "days": 8.0,
+        "avg": -12.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 8.0,
+            "i": -12.0
+          }
+        ]
+      },
+      {
+        "p": "Agnes",
+        "days": 2.0,
+        "avg": -13.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 2.0,
+            "i": -13.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Paragon (EP)",
+    "chain": "Guardian",
+    "baseline": 190.0,
+    "promos": [
+      {
+        "p": "Agnes",
+        "days": 21.0,
+        "avg": 164.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 21.0,
+            "i": 164.0
+          }
+        ]
+      },
+      {
+        "p": "Michelle",
+        "days": 3.0,
+        "avg": -76.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 3.0,
+            "i": -76.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Parkway Parade",
+    "chain": "Watsons",
+    "baseline": 86.4,
+    "promos": [
+      {
+        "p": "Rowsyn",
+        "days": 9.0,
+        "avg": 327.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 9.0,
+            "i": 327.0
+          }
+        ]
+      },
+      {
+        "p": "Helen",
+        "days": 1.0,
+        "avg": 119.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 1.0,
+            "i": 119.0
+          }
+        ]
+      },
+      {
+        "p": "Angie",
+        "days": 3.0,
+        "avg": 20.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 3.0,
+            "i": 20.0
+          }
+        ]
+      },
+      {
+        "p": "Emerson",
+        "days": 15.0,
+        "avg": 11.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 13.0,
+            "i": 43.0
+          },
+          {
+            "m": "Apr-26",
+            "d": 2.0,
+            "i": -21.0
+          }
+        ]
+      },
+      {
+        "p": "Sharon",
+        "days": 4.0,
+        "avg": -30.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 4.0,
+            "i": -30.0
+          }
+        ]
+      },
+      {
+        "p": "Lynn Lau",
+        "days": 1.0,
+        "avg": -58.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 1.0,
+            "i": -58.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Paya Lebar Quarter",
+    "chain": "Unity",
+    "baseline": 19.0,
+    "promos": [
+      {
+        "p": "Joanne",
+        "days": 1.0,
+        "avg": 277.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 1.0,
+            "i": 277.0
+          }
+        ]
+      },
+      {
+        "p": "Carol",
+        "days": 1.5,
+        "avg": 112.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 1.5,
+            "i": 112.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Raffles City",
+    "chain": "Watsons",
+    "baseline": 71.0,
+    "promos": [
+      {
+        "p": "Xirong",
+        "days": 6.0,
+        "avg": 115.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 6.0,
+            "i": 115.0
+          }
+        ]
+      },
+      {
+        "p": "Agnes",
+        "days": 13.0,
+        "avg": 111.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 13.0,
+            "i": 111.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Tampines Mall",
+    "chain": "Guardian / Watsons",
+    "baseline": 93.3,
+    "promos": [
+      {
+        "p": "Margaret",
+        "days": 39.0,
+        "avg": 147.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 7.0,
+            "i": 107.0
+          },
+          {
+            "m": "Mar-26",
+            "d": 19.0,
+            "i": 145.0
+          },
+          {
+            "m": "Mar-26",
+            "d": 2.0,
+            "i": 278.0
+          },
+          {
+            "m": "Apr-26",
+            "d": 11.0,
+            "i": 56.0
+          }
+        ]
+      },
+      {
+        "p": "Wei Wei",
+        "days": 3.0,
+        "avg": -44.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 3.0,
+            "i": -44.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Tampines Mall (Vitastiq) w/o Structure",
+    "chain": "Unknown",
+    "baseline": 114.0,
+    "promos": [
+      {
+        "p": "Helen",
+        "days": 3.0,
+        "avg": 115.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 3.0,
+            "i": 115.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Thomson Plaza",
+    "chain": "Unity",
+    "baseline": 102.0,
+    "promos": [
+      {
+        "p": "Agnes",
+        "days": 3.0,
+        "avg": 289.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 3.0,
+            "i": 289.0
+          }
+        ]
+      },
+      {
+        "p": "Lynn Li",
+        "days": 21.0,
+        "avg": 189.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 21.0,
+            "i": 189.0
+          }
+        ]
+      },
+      {
+        "p": "Carol",
+        "days": 3.0,
+        "avg": 148.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 3.0,
+            "i": 148.0
+          }
+        ]
+      },
+      {
+        "p": "Angie",
+        "days": 14.0,
+        "avg": 77.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 14.0,
+            "i": 77.0
+          }
+        ]
+      },
+      {
+        "p": "Wei Wei",
+        "days": 11.0,
+        "avg": 75.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 11.0,
+            "i": 75.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Tiong Bahru",
+    "chain": "Guardian / Watsons",
+    "baseline": 92.5,
+    "promos": [
+      {
+        "p": "Jojo",
+        "days": 18.5,
+        "avg": 91.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 2.0,
+            "i": -41.0
+          },
+          {
+            "m": "Apr-26",
+            "d": 16.5,
+            "i": 224.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Tiong Bahru (Vitastiq) w/o structure",
+    "chain": "Watsons",
+    "baseline": 112.0,
+    "promos": [
+      {
+        "p": "Jojo",
+        "days": 15.0,
+        "avg": 90.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 15.0,
+            "i": 90.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Tiong Bahru Plaza",
+    "chain": "Unknown",
+    "baseline": 108.0,
+    "promos": [
+      {
+        "p": "Wai Lin",
+        "days": 2.0,
+        "avg": 144.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 2.0,
+            "i": 144.0
+          }
+        ]
+      },
+      {
+        "p": "Maco",
+        "days": 7.0,
+        "avg": 32.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 7.0,
+            "i": 32.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Toa Payoh",
+    "chain": "Unity / Watsons",
+    "baseline": 127.5,
+    "promos": [
+      {
+        "p": "Wei Wei",
+        "days": 10.0,
+        "avg": 548.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 10.0,
+            "i": 548.0
+          }
+        ]
+      },
+      {
+        "p": "Jojo",
+        "days": 2.0,
+        "avg": 152.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 2.0,
+            "i": 152.0
+          }
+        ]
+      },
+      {
+        "p": "Wai Lin",
+        "days": 7.0,
+        "avg": 61.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 7.0,
+            "i": 61.0
+          }
+        ]
+      },
+      {
+        "p": "Rowsyn",
+        "days": 1.0,
+        "avg": -60.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 1.0,
+            "i": -60.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Toa Payoh Hub",
+    "chain": "Unknown",
+    "baseline": 109.0,
+    "promos": [
+      {
+        "p": "Rowsyn",
+        "days": 14.0,
+        "avg": 215.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 14.0,
+            "i": 215.0
+          }
+        ]
+      },
+      {
+        "p": "Wei Wei",
+        "days": 10.0,
+        "avg": 90.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 10.0,
+            "i": 90.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Vivocity",
+    "chain": "Unity",
+    "baseline": 209.6,
+    "promos": [
+      {
+        "p": "Xirong",
+        "days": 12.0,
+        "avg": 637.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 11.0,
+            "i": 368.0
+          },
+          {
+            "m": "Mar-26",
+            "d": 1.0,
+            "i": 907.0
+          }
+        ]
+      },
+      {
+        "p": "Agnes",
+        "days": 7.0,
+        "avg": 314.0,
+        "recs": [
+          {
+            "m": "Feb-26",
+            "d": 6.0,
+            "i": 471.0
+          },
+          {
+            "m": "Mar-26",
+            "d": 1.0,
+            "i": 158.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Vivocity (dig into past 6 Months data). Saturation?",
+    "chain": "Unity",
+    "baseline": 208.0,
+    "promos": [
+      {
+        "p": "Agnes",
+        "days": 19.0,
+        "avg": 42.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 19.0,
+            "i": 42.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Waterway Point",
+    "chain": "Unity",
+    "baseline": 81.7,
+    "promos": [
+      {
+        "p": "Jojo",
+        "days": 7.0,
+        "avg": 222.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 7.0,
+            "i": 222.0
+          }
+        ]
+      },
+      {
+        "p": "Lynn",
+        "days": 1.0,
+        "avg": 106.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 1.0,
+            "i": 106.0
+          }
+        ]
+      },
+      {
+        "p": "Angie",
+        "days": 2.0,
+        "avg": 46.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 2.0,
+            "i": 46.0
+          }
+        ]
+      },
+      {
+        "p": "Carol",
+        "days": 15.0,
+        "avg": 10.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 15.0,
+            "i": 10.0
+          }
+        ]
+      },
+      {
+        "p": "Lynn Lau",
+        "days": 3.0,
+        "avg": -43.0,
+        "recs": [
+          {
+            "m": "May-26",
+            "d": 3.0,
+            "i": -43.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "West Mall",
+    "chain": "Unknown",
+    "baseline": 57.0,
+    "promos": [
+      {
+        "p": "Coreen",
+        "days": 11.0,
+        "avg": 165.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 11.0,
+            "i": 165.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "store": "Yew Tee Point",
+    "chain": "Unity",
+    "baseline": 85.0,
+    "promos": [
+      {
+        "p": "Jolin",
+        "days": 1.0,
+        "avg": 362.0,
+        "recs": [
+          {
+            "m": "Apr-26",
+            "d": 1.0,
+            "i": 362.0
+          }
+        ]
+      },
+      {
+        "p": "Karen",
+        "days": 19.0,
+        "avg": 241.0,
+        "recs": [
+          {
+            "m": "Mar-26",
+            "d": 2.0,
+            "i": 303.0
+          },
+          {
+            "m": "Apr-26",
+            "d": 17.0,
+            "i": 178.0
+          }
+        ]
+      }
+    ]
+  }
+];
+
+// ── STORE ADVISOR LOGIC ──
+function advisorSearch(){
+  const q = document.getElementById('advisor-search').value.trim().toUpperCase();
+  const dd = document.getElementById('advisor-dropdown');
+  if(!q){ dd.style.display='none'; return; }
+  const hits = STORE_ADVISOR_DATA.filter(s=>s.store.toUpperCase().includes(q)).slice(0,10);
+  if(!hits.length){ dd.style.display='none'; return; }
+  dd.innerHTML = hits.map(s=>`
+    <div onclick="showAdvisor('${s.store.replace(/'/g,"\'")}')"
+      style="padding:9px 14px;cursor:pointer;border-bottom:.5px solid #f0eee8;font-size:13px;display:flex;justify-content:space-between">
+      <span><b>${s.store}</b> <span style="color:#aaa;font-size:11px">${s.chain}</span></span>
+      <span style="color:#888;font-size:11px">baseline $${s.baseline||'?'}/day</span>
+    </div>`).join('');
+  dd.style.display='block';
+}
+document.addEventListener('click', e=>{
+  if(!e.target.closest('#advisor-search')&&!e.target.closest('#advisor-dropdown'))
+    document.getElementById('advisor-dropdown').style.display='none';
+});
+
+function showAdvisor(storeName){
+  document.getElementById('advisor-search').value = storeName;
+  document.getElementById('advisor-dropdown').style.display='none';
+  const s = STORE_ADVISOR_DATA.find(x=>x.store===storeName);
+  if(!s){ document.getElementById('advisor-result').innerHTML='<p style="color:#aaa">No data found.</p>'; return; }
+
+  const baseline = s.baseline||0;
+  const hasPromos = s.promos.length > 0;
+  const withData = s.promos.filter(p=>p.avg!==null);
+  const noData = s.promos.filter(p=>p.avg===null);
+
+  // Classify each promoter
+  const recommend=[], caution=[], avoid=[];
+  withData.forEach(p=>{
+    const promoter = PROMOTERS.find(x=>x.name===p.p);
+    const grade = promoter?.grade||'?';
+    const overallAvg = promoter?.avg||null;
+    if(p.avg>=167) recommend.push({...p,grade,overallAvg});
+    else if(p.avg>=100) caution.push({...p,grade,overallAvg});
+    else avoid.push({...p,grade,overallAvg});
+  });
+
+  // Verdict
+  const bestAvg = withData.length ? withData[0].avg : null;
+  let verdict, verdictColor, verdictBg;
+  if(!withData.length){
+    verdict='⚪ No performance data yet — untested store';
+    verdictColor='#888'; verdictBg='#f5f5f3';
+  } else if(bestAvg>=200){
+    verdict='🟢 High-yield store — worth deploying right promoters';
+    verdictColor='#0f6e56'; verdictBg='#e1f5ee';
+  } else if(bestAvg>=125){
+    verdict='🟡 Moderate yield — selective deployment only';
+    verdictColor='#a06000'; verdictBg='#fff4e5';
+  } else {
+    verdict='🔴 Tough store — most promoters underperform here';
+    verdictColor='#a32d2d'; verdictBg='#fcebeb';
+  }
+
+  // Who to send
+  const sendThese = recommend.length ? recommend :
+    caution.length ? caution : [];
+  const sendRec = sendThese.length ?
+    sendThese.map(p=>`<span style="background:#e1f5ee;color:#0f6e56;border-radius:5px;padding:2px 8px;font-size:12px;font-weight:600;margin-right:4px">${p.p} ($${p.avg}/day)</span>`).join('') :
+    '<span style="color:#aaa;font-size:12px">No proven performers yet</span>';
+
+  // Also recommend based on overall grade even if not visited
+  const notVisited = PROMOTERS.filter(p=>!isLeaving(p)&&p.avg>=168&&!s.promos.find(x=>x.p===p.name));
+  const potentialSend = notVisited.slice(0,3);
+
+  const rows = [...withData,...noData].map(p=>{
+    const hasI = p.avg!==null;
+    const c = hasI ? gc(p.avg) : '#bbb';
+    const recs = p.recs.map(r=>`${r.m}: ${r.d}d ${r.i!==null?'$'+r.i+'/day':'no data'}`).join(' · ');
+    const verdict2 = !hasI ? '<span style="color:#bbb">No incr data</span>' :
+      p.avg>=167 ? `<span style="color:#0f6e56;font-weight:600">✓ Recommend</span>` :
+      p.avg>=100 ? `<span style="color:#ba7517;font-weight:600">⚠ Caution</span>` :
+      `<span style="color:#e24b4a;font-weight:600">✕ Avoid</span>`;
+    return`<tr>
+      <td style="font-weight:600">${p.p}</td>
+      <td style="text-align:right;font-weight:700;color:${c}">${hasI?'$'+p.avg+'/day':'—'}</td>
+      <td style="text-align:center;color:#888">${p.days}d</td>
+      <td style="font-size:11px;color:#888">${recs}</td>
+      <td>${verdict2}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('advisor-result').innerHTML=`
+    <div style="background:${verdictBg};border-left:3px solid ${verdictColor};border-radius:0 9px 9px 0;padding:10px 14px;margin-bottom:1rem;font-size:13px;font-weight:600;color:${verdictColor}">${verdict}</div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem">
+      <div style="background:#f5f5f3;border-radius:8px;padding:8px 10px;text-align:center">
+        <div style="font-size:10px;color:#888;margin-bottom:3px;text-transform:uppercase">Chain</div>
+        <div style="font-size:14px;font-weight:600">${s.chain||'Unknown'}</div>
+      </div>
+      <div style="background:#f5f5f3;border-radius:8px;padding:8px 10px;text-align:center">
+        <div style="font-size:10px;color:#888;margin-bottom:3px;text-transform:uppercase">Baseline/day</div>
+        <div style="font-size:14px;font-weight:600">${s.baseline?'$'+s.baseline:'Unknown'}</div>
+      </div>
+      <div style="background:#f5f5f3;border-radius:8px;padding:8px 10px;text-align:center">
+        <div style="font-size:10px;color:#888;margin-bottom:3px;text-transform:uppercase">Promoters tried</div>
+        <div style="font-size:14px;font-weight:600">${s.promos.length}</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:1rem">
+      <div style="font-size:11px;font-weight:700;color:#0f6e56;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">✓ Send these</div>
+      <div>${sendRec}</div>
+      ${potentialSend.length?`<div style="margin-top:6px;font-size:11px;color:#888">Also consider (unvisited A+ performers): ${potentialSend.map(p=>`<b>${p.name}</b>`).join(', ')}</div>`:''}
+    </div>
+
+    ${avoid.length?`<div style="margin-bottom:1rem">
+      <div style="font-size:11px;font-weight:700;color:#e24b4a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">✕ Avoid sending</div>
+      <div>${avoid.map(p=>`<span style="background:#fcebeb;color:#a32d2d;border-radius:5px;padding:2px 8px;font-size:12px;font-weight:600;margin-right:4px">${p.p} ($${p.avg}/day)</span>`).join('')}</div>
+    </div>`:''}
+
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>Promoter</th><th style="text-align:right">Avg incr/day</th><th style="text-align:center">Days</th><th>Records</th><th>Verdict</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+function buildAdvisorList(){
+  const el = document.getElementById('advisor-all-stores');
+  el.innerHTML = STORE_ADVISOR_DATA.map(s=>{
+    const withData = s.promos.filter(p=>p.avg!==null);
+    const best = withData.length ? withData[0] : null;
+    const c = best ? gc(best.avg) : '#bbb';
+    return`<div onclick="showAdvisor('${s.store.replace(/'/g,"\'")}')" 
+      style="background:#fafaf8;border:.5px solid #e0ded8;border-radius:8px;padding:8px 10px;cursor:pointer;transition:box-shadow .15s"
+      onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,.1)'" onmouseout="this.style.boxShadow='none'">
+      <div style="font-size:12px;font-weight:600;margin-bottom:3px">${s.store}</div>
+      <div style="font-size:10px;color:#aaa;margin-bottom:4px">${s.chain} · bl $${s.baseline||'?'}/d</div>
+      ${best?`<div style="font-size:12px;font-weight:700;color:${c}">Best: ${best.p} $${best.avg}/d</div>`:'<div style="font-size:11px;color:#bbb">No data yet</div>'}
+    </div>`;
+  }).join('');
+}
+
+// ── TAB + INIT ──
+function showTab(id,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');document.getElementById('tab-'+id).classList.add('on');
+}
+function buildAll(){
+  buildInsights();buildStores();buildOverview();
+  buildRankFilters();buildRanking();buildTrend();
+  buildIndSel();buildQA();buildAdvisorList();
+  document.getElementById('ind-content').innerHTML='<div style="text-align:center;padding:2rem;color:#aaa">Select a promoter above</div>';
+}
+buildAll();
+
+
+</script>
+</body>
+</html>
